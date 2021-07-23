@@ -1,0 +1,8 @@
+
+__pycache__/
+../.idea/
+*.mp4
+*.jpg
+*.png
+*.pdf
+*.pyc

@@ -1,0 +1,3 @@
+sp_tests/*
+svn_tests/*
+__pycache__
