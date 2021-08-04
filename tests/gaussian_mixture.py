@@ -149,8 +149,8 @@ for eps in eps_list:
                             optimizer_type=optimizer_type,
                         )
 
-    print("\nMean Est.: ", particles.mean(1))
-    print("Std Est.: ", particles.std(1))
+    print("\nMean Est.: ", particles.mean(0))
+    print("Std Est.: ", particles.std(0))
 
     create_movie_2D(
         p_hist,

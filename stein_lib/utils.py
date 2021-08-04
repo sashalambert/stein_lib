@@ -20,10 +20,10 @@ def get_jacobian(
     """
     dg_dXi = [
         torch.autograd.grad(
-            gradient[i].sum(),
+            gradient[:, i].sum(),
             X,
             retain_graph=True,
-        )[0] for i in range(gradient.shape[0])
+        )[0] for i in range(gradient.shape[1])
     ]
-    J = torch.stack(dg_dXi, dim=0)
+    J = torch.stack(dg_dXi, dim=1)
     return J

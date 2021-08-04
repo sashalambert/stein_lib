@@ -65,7 +65,7 @@ def create_movie_2D(
             )
     if to_numpy:
         grid = torch.from_numpy(grid)
-        z = log_prob(grid).cpu().numpy()
+        z = log_prob(grid.t()).cpu().numpy()
         Z = np.exp(z).reshape(ngrid, ngrid)
     else:
         Z = np.exp(
@@ -76,7 +76,7 @@ def create_movie_2D(
     xlim = ax_limits
     ylim= ax_limits
     p_start = particle_hist[0]
-    particles = plt.plot(p_start[0], p_start[1], 'ro', markersize=3)
+    particles = plt.plot(p_start[:, 0], p_start[:, 1], 'ro', markersize=3)
     n_iter = len(particle_hist)
 
     def _init():  # only required for blitting to give a clean slate.
@@ -90,8 +90,8 @@ def create_movie_2D(
         # ax.set_title(str(i) + '$ ^{th}$ iteration')
         ax.set_title(case_name + '\n' + str(i) + '$ ^{th}$ iteration')
         pos = particle_hist[i]
-        particles[0].set_xdata(pos[0])
-        particles[0].set_ydata(pos[1])
+        particles[0].set_xdata(pos[:, 0])
+        particles[0].set_ydata(pos[:, 1])
         return particles
 
     ani = animation.FuncAnimation(

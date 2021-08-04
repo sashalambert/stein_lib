@@ -163,8 +163,6 @@ class SVGD():
         Hess=None,
         Hess_prior=None,
         Jacobian=None,
-        # reshape_inputs=True,
-        # transpose=False,
     ):
         """
         Computes the SVGD gradient.
