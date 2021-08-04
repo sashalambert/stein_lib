@@ -14,4 +14,4 @@ setup(
     description='Stein Variational Inference Library',
     url='https://github.com/sashalambert/stein_lib.git',
     author='Sasha Alexander Lambert',
-
+)
