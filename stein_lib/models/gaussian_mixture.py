@@ -44,8 +44,6 @@ class mixture_of_gaussians:
         self.dist = MixtureOfDiagNormals(mus, sigmas, mix_coeffs)
 
     def log_prob(self, x):
-        if x.dim() == 2:
-            x = x.t()
         return self.dist.log_prob(x)
 
     def grad_log_p(self, x):

@@ -38,9 +38,9 @@ eps_list = [0.1]
 # Sample intial particles
 torch.manual_seed(1)
 # prior_dist = Normal(loc=0., scale=1.)
-# prior_dist = Normal(loc=0., scale=0.5)
 prior_dist = Normal(loc=-4, scale=0.5)
-particles_0 = prior_dist.sample((2, num_particles))
+# particles_0 = prior_dist.sample((2, num_particles))
+particles_0 = prior_dist.sample((num_particles, 2))
 
 # Load model
 

@@ -154,79 +154,36 @@ class SVGD():
             compute_dK_dK_t=False,
         )
         return k_XX, grad_k
-
-    def reshape_inputs(
-            self,
-            X,
-            dlog_p,
-            Hess=None,
-            transpose=False,
-    ):
-        if transpose:
-            X = X.flatten(end_dim=-2)
-            dlog_p = dlog_p.flatten(end_dim=-2)
-            if Hess is not None:
-                Hess = Hess.reshape(
-                    dlog_p.shape[0],
-                    dlog_p.shape[0],
-                    -1,
-                )
-            X = X.t()
-            dlog_p = dlog_p.t()
-            if Hess is not None:
-                Hess = Hess.permute(2, 0, 1)
-        else:
-            X = X.flatten(start_dim=1)
-            dlog_p = dlog_p.flatten(start_dim=1)
-            if Hess is not None:
-                Hess = Hess.reshape(
-                    dlog_p.shape[0],
-                    dlog_p.shape[1],
-                    dlog_p.shape[1],
-                )
-        return X, dlog_p, Hess
-
+    
     def phi(
         self,
         X,
         dlog_p,
-        dlog_lh,
+        dlog_lh=None,
         Hess=None,
         Hess_prior=None,
         Jacobian=None,
-        reshape_inputs=True,
-        transpose=False,
+        # reshape_inputs=True,
+        # transpose=False,
     ):
         """
+        Computes the SVGD gradient.
+
         Parameters
         ----------
         X : (Tensor)
-            Stein particles, of shape [num_particles, dim],
-            or of shape [dim, num_particles]. If Tensor dimension is greater than 2,
-            extra dimensions will be flattened.
+            Stein particles, of shape [batch, dim].
         dlog_p : (Tensor)
-            Score function, of shape [num_particles, dim]
-            or of shape [dim, num_particles]. If Tensor dimension is greater than 2,
-            extra dimensions will be flattened.
-        transpose: Bool
-            Transpose input and output Tensors.
+            Score function, of shape [batch, dim].
+
         Returns
         -------
         Phi: (Tensor)
-            Empirical Stein gradient, of shape [num_particles, dim]
+            Empirical Stein gradient, of shape [batch, dim].
         """
 
-        shape_original = X.shape
-        if reshape_inputs:
-            X, dlog_p, Hess = self.reshape_inputs(
-                X,
-                dlog_p,
-                Hess,
-                transpose,
-            )
-
         if self.geom_metric_type is None:
-            M=None
+            M = None
             pass
         elif self.geom_metric_type == 'full_hessian':
             assert Hess is not None
@@ -238,29 +195,14 @@ class SVGD():
         elif self.geom_metric_type == 'jacobian_product':
             # Average Fisher matrix (full posterior gradient)
             M = torch.bmm(Jacobian.transpose(1, 2), Jacobian)
-            Hess_prior = Hess_prior.reshape(
-                dlog_p.shape[0],
-                dlog_p.shape[1],
-                dlog_p.shape[1],
-            )
             M = M - Hess_prior
         elif self.geom_metric_type == 'riemannian':
             # Average Fisher matrix plus neg. Hessian of log prior
             b = dlog_lh.shape[0]
             Hess = torch.bmm(dlog_lh.view(b, -1, 1,), dlog_lh.view(b, 1, -1))
-            Hess_prior = Hess_prior.reshape(
-                        dlog_p.shape[0],
-                        dlog_p.shape[1],
-                        dlog_p.shape[1],
-                    )
             M = - Hess - Hess_prior
         elif self.geom_metric_type == 'local_Hessians':
             # Average Fisher matrix plus neg. Hessian of log prior
-            Hess_prior = Hess_prior.reshape(
-                        dlog_p.shape[0],
-                        dlog_p.shape[1],
-                        dlog_p.shape[1],
-                    )
             M = - Hess - Hess_prior
         else:
             raise NotImplementedError
@@ -281,12 +223,6 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
-        # Reshape Phi to match original input tensor dimensions
-        if reshape_inputs:
-            if transpose:
-                phi = phi.t()
-            phi = phi.reshape(shape_original)
-
         return phi
 
     def apply(
@@ -300,7 +236,7 @@ class SVGD():
     ):
         """
         Runs SVGD optimization on a distribution model, given a particle
-         initialization X, and a selected optimization type.
+         initialization X, and a selected optimization algorithm.
 
         Parameters
         ----------
@@ -384,15 +320,12 @@ class SVGD():
             Phi = self.phi(
                 X,
                 dlog_p,
-                dlog_p.transpose(0,1),   # log_lh
-                Hess,
-                Hess_prior=None,
-                Jacobian=None,
-                transpose=True
+                dlog_lh=dlog_p,
+                Hess=Hess,
             )
 
             X.grad = -1. * Phi
-            loss = 0.1
+            loss = 1.
             return loss
 
         for i in range(iters):
