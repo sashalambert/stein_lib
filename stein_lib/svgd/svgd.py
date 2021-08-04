@@ -35,6 +35,8 @@ from .composite_kernels import (
     iid,
 )
 from .LBFGS import FullBatchLBFGS, LBFGS
+from ..utils import get_jacobian
+
 
 class SVGD():
     """
@@ -111,9 +113,12 @@ class SVGD():
 
         Parameters
         ----------
-        X :  Stein particles. Tensor of shape [batch, dim],
-        dlog_p : tensor of shape [batch, dim]
-        M : (Optional) Negative Hessian or Fisher matrices. Tensor of shape [batch, dim, dim]
+        X :
+          Stein particles. Tensor of shape [batch, dim],
+        dlog_p :
+          tensor of shape [batch, dim]
+        M : (Optional)
+          Negative Hessian or Fisher matrices. Tensor of shape [batch, dim, dim]
 
         Returns
         -------
@@ -227,11 +232,11 @@ class SVGD():
             assert Hess is not None
             M = - Hess
         elif self.geom_metric_type == 'fisher':
-            ## Average Fisher matrix (likelihood only)
+            # Average Fisher matrix (likelihood only)
             np = dlog_lh.shape[0]
             M = torch.bmm(dlog_lh.reshape(np, -1, 1,), dlog_lh.reshape(np, 1, -1))
         elif self.geom_metric_type == 'jacobian_product':
-            ## Average Fisher matrix (full posterior gradient)
+            # Average Fisher matrix (full posterior gradient)
             M = torch.bmm(Jacobian.transpose(1, 2), Jacobian)
             Hess_prior = Hess_prior.reshape(
                 dlog_p.shape[0],
@@ -260,6 +265,7 @@ class SVGD():
         else:
             raise NotImplementedError
 
+        # SVGD attractive and repulsive terms
         grad, rep = self.get_svgd_terms(
             X,
             dlog_p,
@@ -272,6 +278,7 @@ class SVGD():
             print('repulsive l2-norm: {:5.4f}'.format(
                 rep.norm().detach().cpu().numpy()))
 
+        # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
         # Reshape Phi to match original input tensor dimensions
@@ -281,7 +288,6 @@ class SVGD():
             phi = phi.reshape(shape_original)
 
         return phi
-
 
     def apply(
             self,
@@ -293,14 +299,17 @@ class SVGD():
             optimizer_type='SGD'
     ):
         """
-        SVGD updates.
+        Runs SVGD optimization on a distribution model, given a particle
+         initialization X, and a selected optimization type.
 
         Parameters
         ----------
-        X : (Tensor) of nd.array
+        X : (Tensor)
             Stein particles, of shape [dim, num_particles]
-        dlog_p : (Tensor)
-            Score function, of shape [dim, num_particles]
+        model:
+            Probability distribution model instance. Can be of differentiable
+            type torch.distributions, or custom model with analytic functions
+            (see examples under 'stein_lib/models').
         eps : Float
             Step size.
         """
@@ -335,6 +344,7 @@ class SVGD():
         else:
             raise NotImplementedError
 
+        # Optimizer type
         def closure():
             optimizer.zero_grad()
             Hess = None
@@ -368,8 +378,9 @@ class SVGD():
                             'RBF_Matrix',
                             'RBF_Weighted_Matrix',
                         ]:
-                    Hess = self.get_jacobian(dlog_p, X)
+                    Hess = get_jacobian(dlog_p, X)
 
+            # SVGD gradient
             Phi = self.phi(
                 X,
                 dlog_p,
@@ -404,28 +415,3 @@ class SVGD():
         print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
         return X, particle_history
-
-    def get_jacobian(
-            self,
-            gradient,
-            X,
-    ):
-        """
-        Parameters
-        ----------
-        gradient :
-            Of shape [dim, batch]
-        X :
-            of shape [X_dim, batch]
-        Returns
-        -------
-        """
-        dg_dXi = [
-            torch.autograd.grad(
-                gradient[i].sum(),
-                X,
-                retain_graph=True,
-            )[0] for i in range(gradient.shape[0])
-        ]
-        J = torch.stack(dg_dXi, dim=0)
-        return J

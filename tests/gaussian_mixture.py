@@ -26,7 +26,7 @@ from torch.distributions import Normal
 from stein_lib.svgd.svgd import SVGD
 
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from stein_lib.utils import create_movie_2D
+from tests.utils import create_movie_2D
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -132,6 +132,7 @@ for eps in eps_list:
     particles = torch.from_numpy(particles)
     kernel_base_type = 'RBF_Anisotropic' # 'RBF', 'IMQ'
     optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
+
     svgd = SVGD(
         kernel_base_type=kernel_base_type,
         kernel_structure=None,
