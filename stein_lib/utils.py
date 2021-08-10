@@ -27,3 +27,17 @@ def get_jacobian(
     ]
     J = torch.stack(dg_dXi, dim=1)
     return J
+
+
+def calc_pw_distances(X):
+    """
+    Returns the pairwise distances between particles.
+    Parameters
+    ----------
+    X : Tensor
+        Points. of shape [dim, batch]
+    """
+    XX = X.matmul(X.t())
+    pairwise_dists_sq = -2 * XX + XX.diag().unsqueeze(1) + XX.diag().unsqueeze(0)
+    pw_dists = torch.sqrt(pairwise_dists_sq)
+    return pw_dists
