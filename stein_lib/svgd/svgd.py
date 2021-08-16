@@ -35,7 +35,7 @@ from .composite_kernels import (
     iid,
 )
 from .LBFGS import FullBatchLBFGS, LBFGS
-from ..utils import get_jacobian
+from ..utils import get_jacobian, calc_pw_distances
 
 
 class SVGD():
@@ -67,6 +67,9 @@ class SVGD():
             self,
             **kernel_params,
     ):
+        """
+
+        """
         if self.kernel_base_type == 'RBF':
             return RBF(
                 **kernel_params,
@@ -110,29 +113,35 @@ class SVGD():
             M=None,
     ):
         """
-
         Parameters
         ----------
-        X :
+        X : Tensor
           Stein particles. Tensor of shape [batch, dim],
-        dlog_p :
-          tensor of shape [batch, dim]
+        dlog_p : Tensor
+          Gradient of log probability. Shape [batch, dim]
         M : (Optional)
           Negative Hessian or Fisher matrices. Tensor of shape [batch, dim, dim]
 
         Returns
         -------
-        gradient: tensor of shape [batch, dim]
-        repulsive: tensor of shape [batch, dim]
-
+        grad: Tensor
+            Attractive SVGD gradient term.
+            Shape [batch, dim].
+        rep: Tensor
+            Repulsive SVGD term.
+            Shape [batch, dim].
+        pw_dists_sq: Tensor
+            Squared pairwise distances between particles. Can be scaled by a
+            metric.
+            Shape [batch, batch].
         """
 
-        k_XX, grad_k = self.evaluate_kernel(X, M)
+        k_XX, grad_k, pw_dists_sq = self.evaluate_kernel(X, M)
 
-        gradient = k_XX.mm(dlog_p) / k_XX.size(1)
-        repulsive = grad_k.mean(1)
+        grad = k_XX.mm(dlog_p) / k_XX.size(1)
+        rep = grad_k.mean(1)
 
-        return gradient, repulsive
+        return grad, rep, pw_dists_sq
 
     def evaluate_kernel(self, X, M=None):
         """
@@ -144,16 +153,19 @@ class SVGD():
 
         Returns
         -------
-        k_XX : tensor of shape [batch, batch]
-        grad_k : tensor of shape [batch, batch, dim]
+        k_XX :
+            tensor of shape [batch, batch]
+        grad_k :
+            tensor of shape [batch, batch, dim]
+        pw_dists_sq:
 
         """
-        k_XX, grad_k, _ = self.kernel.eval(
+        k_XX, grad_k, _, pw_dists_sq = self.kernel.eval(
             X, X.clone().detach(),
             M,
             compute_dK_dK_t=False,
         )
-        return k_XX, grad_k
+        return k_XX, grad_k, pw_dists_sq
     
     def phi(
         self,
@@ -169,15 +181,18 @@ class SVGD():
 
         Parameters
         ----------
-        X : (Tensor)
+        X : Tensor
             Stein particles, of shape [batch, dim].
-        dlog_p : (Tensor)
+        dlog_p : Tensor
             Score function, of shape [batch, dim].
 
         Returns
         -------
-        Phi: (Tensor)
+        Phi: Tensor
             Empirical Stein gradient, of shape [batch, dim].
+        pw_dists_sq: Tensor
+            Squared pairwise distances between particles. Can be metric-scaled.
+            Shape [batch, batch].
         """
 
         if self.geom_metric_type is None:
@@ -205,13 +220,12 @@ class SVGD():
         else:
             raise NotImplementedError
 
-        # SVGD attractive and repulsive terms
-        grad, rep = self.get_svgd_terms(
+        # SVGD attractive / repulsive terms, inter-particle distances
+        grad, rep, pw_dists_sq = self.get_svgd_terms(
             X,
             dlog_p,
             M,
         )
-
         if self.verbose:
             print('gradient l2-norm: {:5.4f}'.format(
                 grad.norm().detach().cpu().numpy()))
@@ -221,7 +235,7 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
-        return phi
+        return phi, pw_dists_sq
 
     def apply(
             self,
@@ -244,8 +258,15 @@ class SVGD():
             Probability distribution model instance. Can be of differentiable
             type torch.distributions, or custom model with analytic functions
             (see examples under 'stein_lib/models').
+        iters:
+            Number of optimization iterations.
         eps : Float
             Step size.
+        use_analytic_grads: Bool
+            Set to 'True' if probability model uses analytic gradients. If set to
+            'False', numerical gradient will be computed.
+        optimizer_type: str
+            Optimizer used for updates.
         """
 
         particle_history = []
@@ -253,6 +274,9 @@ class SVGD():
 
         dts = []
         X = torch.autograd.Variable(X, requires_grad=True)
+
+        # pw_distances_sq = torch.empty(X.shape[0], X.shape[0])
+        # pw_distances_sq = torch.autograd.Variable(pw_distances_sq, requires_grad=True)
 
         if optimizer_type == 'SGD':
             optimizer = torch.optim.SGD([X], lr=0.1)
@@ -304,7 +328,6 @@ class SVGD():
                     X,
                     create_graph=True,
                 )[0]
-
                 if self.kernel_base_type in \
                         [
                             'RBF_Anisotropic',
@@ -315,34 +338,38 @@ class SVGD():
                     Hess = get_jacobian(dlog_p, X)
 
             # SVGD gradient
-            Phi = self.phi(
-                X,
-                dlog_p,
-                dlog_lh=dlog_p,
-                Hess=Hess,
-            )
-
+            with torch.no_grad():
+                Phi, pw_dists_sq = self.phi(
+                    X,
+                    dlog_p,
+                    dlog_lh=dlog_p,
+                    Hess=Hess,
+                )
+            # pw_distances_sq = pw_dists_sq.clone()
+            # pw_distances_sq.grad = torch.zeros_like(pw_distances_sq)
+            # print('max pw dist sq: ', pw_distances_sq.max())
             X.grad = -1. * Phi
             loss = 1.
             return loss
 
         for i in range(iters):
-
             t_start = time()
-
             if isinstance(optimizer, FullBatchLBFGS):
                 options = {'closure': closure, 'current_loss': closure()}
                 optimizer.step(options)
             else:
                 optimizer.step(closure)
-
             dt = time() - t_start
-            print('dt (SVGD): {}'.format(dt))
+            if self.verbose:
+                print('dt (SVGD): {}\n'.format(dt))
             dts.append(dt)
             particle_history.append(X.clone().detach().cpu().numpy())
-
         dt_stats = np.array(dts)
-        print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
-        print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
+        if self.verbose:
+            print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
+            print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
-        return X, particle_history
+        # Pairwise distances
+        pw_dists = calc_pw_distances(X)
+
+        return X, particle_history, pw_dists

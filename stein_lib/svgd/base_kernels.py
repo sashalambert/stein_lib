@@ -62,8 +62,12 @@ class BaseKernel(ABC):
         dK_dK_t: Tensor (Optional)
             Outer products of kernel gradients (used by SVN).
              Shape: [batch, batch, dim,  dim]
+        pw_dists_sq: Tensor (Optional)
+            If applicable, returns the squared, inter-particle pairwise distances.
+            Shape: [batch, batch]
         """
         pass
+
 
 class RBF(BaseKernel):
     """
@@ -149,8 +153,10 @@ class RBF(BaseKernel):
         return (
             K,
             d_K_Xi,
-            dK_dK_t
+            dK_dK_t,
+            pw_dists_sq,
         )
+
 
 class IMQ(BaseKernel):
     """
@@ -200,9 +206,9 @@ class IMQ(BaseKernel):
         X_M_Yt = X @ M @ Y.t()
         Y_M_Yt = Y @ M @ Y.t()
 
-        pairwise_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
+        pw_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
         if self.median_heuristic:
-            h = torch.median(pairwise_dists_sq).detach()
+            h = torch.median(pw_dists_sq).detach()
             h = h / np.log(X.shape[0])
             # h *= 0.5
         else:
@@ -215,8 +221,8 @@ class IMQ(BaseKernel):
         else:
             h = np.clip(h, a_min=tol, a_max=None)
 
-        K = ( self.alpha + pairwise_dists_sq) ** self.beta
-        d_K_Xi = self.beta * ((self.alpha + pairwise_dists_sq) ** (self.beta - 1)).unsqueeze(2) \
+        K = ( self.alpha + pw_dists_sq) ** self.beta
+        d_K_Xi = self.beta * ((self.alpha + pw_dists_sq) ** (self.beta - 1)).unsqueeze(2) \
                  * ( -1 * (X.unsqueeze(1) - Y) @ M ) * 2 / h
                  # * ( (X.unsqueeze(1) - Y) @ M ) * 2 / h
 
@@ -231,8 +237,10 @@ class IMQ(BaseKernel):
         return (
             K,
             d_K_Xi,
-            dK_dK_t
+            dK_dK_t,
+            pw_dists_sq,
         )
+
 
 class RBF_Anisotropic(RBF):
     """
@@ -276,16 +284,16 @@ class RBF_Anisotropic(RBF):
 
         if self.analytic_grad:
             if self.median_heuristic:
-                bandwidth, pairwise_dists_sq = self.compute_bandwidth(X, Y)
+                bandwidth, pw_dists_sq = self.compute_bandwidth(X, Y)
             else:
                 # bandwidth = self.hessian_scale * X.shape[1]
                 bandwidth = self.hessian_scale
-                pairwise_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
+                pw_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
 
             if bw is not None:
                 bandwidth = bw
 
-            K = (- pairwise_dists_sq / bandwidth).exp()
+            K = (- pw_dists_sq / bandwidth).exp()
             d_K_Xi = K.unsqueeze(2) * ( (X.unsqueeze(1) - Y) @ M ) * 2 / bandwidth
         else:
             raise NotImplementedError
@@ -301,8 +309,10 @@ class RBF_Anisotropic(RBF):
         return (
             K,
             d_K_Xi,
-            dK_dK_t
+            dK_dK_t,
+            pw_dists_sq,
         )
+
 
 class Linear(BaseKernel):
     """
@@ -360,5 +370,6 @@ class Linear(BaseKernel):
         return (
             K,
             d_K_Xi,
-            dK_dK_t
+            dK_dK_t,
+            None,
         )

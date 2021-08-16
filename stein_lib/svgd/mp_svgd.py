@@ -28,6 +28,7 @@ from .mp_composite_kernels import (
     iid_mp,
 )
 
+
 class MP_SVGD(SVGD):
     """
         Message Passing SVGD.
@@ -52,12 +53,6 @@ class MP_SVGD(SVGD):
                 kernel=self.base_kernel,
                 **kernel_params,
             )
-        # elif self.kernel_structure == 'ternary_mp':
-        #     return ternary_mp(
-        #         ctrl_dim=self.ctrl_dim,
-        #         kernel=self.base_kernel,
-        #         **kernel_params,
-        #     )
         else:
             raise IOError('Kernel structure not recognized for MP-SVGD: ',
                           self.kernel_structure,)
@@ -84,13 +79,12 @@ class MP_SVGD(SVGD):
 
         """
 
-        k_XX, grad_k = self.evaluate_kernel(X, M)
+        k_XX, grad_k, pw_dists_sq = self.evaluate_kernel(X, M)
 
         gradient = (k_XX.detach() * dlog_p.unsqueeze(0)).mean(1)
         repulsive = grad_k.mean(1)
 
-        return gradient, repulsive
-
+        return gradient, repulsive, pw_dists_sq
 
     def evaluate_kernel(self, X, M=None):
         """
@@ -106,9 +100,9 @@ class MP_SVGD(SVGD):
         grad_k : tensor of shape [batch, batch, dim]
 
         """
-        k_XX, grad_k, _ = self.kernel.eval(
+        k_XX, grad_k, _, pw_dists_sq = self.kernel.eval(
             X, X.clone().detach(),
             M,
             compute_dK_dK_t=False,
         )
-        return k_XX, grad_k
+        return k_XX, grad_k, pw_dists_sq

@@ -60,7 +60,7 @@ centers_list=[
     [-2*s, 2*s] ,  [-s, 2*s],  [0., 2*s],  [s, 2*s], [2*s, 2*s],
     [-2*s, s] , [-s, s],  [0., s],  [s, s], [2*s, s],
     [-2*s, 0.]  , [-s, 0.], [0., 0.], [s, 0.], [2*s, 0.],
-     [-s, -s], [2*s, -s],
+    [-s, -s], [2*s, -s],
     [-2*s, -2*s], [-s, -2*s], [0., -2*s],  [2*s, -2*s],
 
     [-2*s, 1.5*s] ,  [-2*s, 0.5*s],  [-1.5*s, 0],  [-0.5*s, 0],
@@ -139,13 +139,15 @@ for eps in eps_list:
         median_heuristic=False,
         repulsive_scaling=2.,
         geom_metric_type='fisher',
+        verbose=True,
     )
 
-    particles, p_hist = svgd.apply(
+    particles, p_hist, pw_dists_sq = svgd.apply(
                             particles,
                             model,
                             iters,
                             eps,
+                            use_analytic_grads=False,
                             optimizer_type=optimizer_type,
                         )
 
@@ -187,7 +189,7 @@ for eps in eps_list:
     #     geom_metric_type='fisher',
     #     # geom_metric_type='full_hessian',
     #     # median_heuristic=True,
-    #     )
+    #
     #
     # particles, p_hist = matrix_svgd.apply(
     #                         particles,

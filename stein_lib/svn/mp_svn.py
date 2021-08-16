@@ -21,8 +21,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from svgd.mp_svgd import MP_SVGD
-from stein_lib.svn import SVN
+from ..svgd.mp_svgd import MP_SVGD
+from .svn import SVN
 
 
 class MP_SVN(SVN, MP_SVGD):
