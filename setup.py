@@ -8,7 +8,7 @@ if sys.version_info.major != 3:
           "Python {}. The installation will likely fail.".format(sys.version_info.major))
 
 setup(
-    name='svmpc_np',
+    name='steinlib',
     version='1.0.0',
     packages=find_packages(exclude=('results*', '*results')),
     description='Stein Variational Inference Library',
