@@ -73,7 +73,7 @@ def create_movie_2D(
 
     plt.contourf(X, Y, Z, 10)
     xlim = ax_limits
-    ylim= ax_limits
+    ylim = ax_limits
     p_start = particle_hist[0]
     particles = plt.plot(p_start[:, 0], p_start[:, 1], 'ro', markersize=3)
     n_iter = len(particle_hist)
@@ -96,10 +96,10 @@ def create_movie_2D(
     ani = animation.FuncAnimation(
         fig,
         _animate,
+        frames=n_iter,
         init_func=_init,
         # interval=250,
         interval=100,
-        blit=True,
         save_count=n_iter,
     )
 
