@@ -24,7 +24,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import seaborn as sns
 import matplotlib.animation as animation
 
 #Animation function
