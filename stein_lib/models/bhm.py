@@ -11,7 +11,7 @@ class BayesianHilbertMap:
 
         # Load trained Bayesian Hilbert Map
         params = torch.load(file_path)
-        self.bhm = BHM2D_PYTORCH(**params)
+        self.bhm = BHM2D_PYTORCH(torch_kernel_func=True, **params)
 
     def log_prob(self, x):
         return self.bhm.log_prob(x)
