@@ -1,6 +1,6 @@
 import os
 import sys
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 if sys.version_info.major != 3:
@@ -10,7 +10,7 @@ if sys.version_info.major != 3:
 setup(
     name='steinlib',
     version='1.0.0',
-    packages=find_packages(exclude=('results*', '*results')),
+    packages=['stein_lib'],
     description='Stein Variational Inference Library',
     url='https://github.com/sashalambert/stein_lib.git',
     author='Sasha Alexander Lambert',
