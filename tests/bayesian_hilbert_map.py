@@ -31,67 +31,101 @@ from tests.utils import create_movie_2D
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
-num_particles = 100
-iters = 200
-eps_list = [0.1]
+num_particles = 200
+iters = 1000
 
 # Sample intial particles
 torch.manual_seed(1)
-prior_dist = Normal(loc=0., scale=1.)
-particles_0 = prior_dist.sample((num_particles, 2))
+
+## Large Gaussian in center of intel map.
+prior_dist = Normal(loc=torch.tensor([3.,-10.]),
+                    scale=torch.tensor([10., 10.]))
+
+## Small gaussian in corner of intel map.
+# prior_dist = Normal(loc=torch.tensor([12.,-3.]),
+#                     scale=torch.tensor([1.,1.]))
+particles_0 = prior_dist.sample((num_particles,))
 
 # Load model
 import bhmlib
 bhm_path = Path(bhmlib.__path__[0]).resolve()
-model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter010.pt'
+model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter100.pt'
 
 model = BayesianHilbertMap(model_file)
 
+#================== SVGD ===========================
+particles = particles_0.clone().cpu().numpy()
+particles = torch.from_numpy(particles)
 
-for eps in eps_list:
+# kernel_base_type = 'RBF'
+# # optimizer_type = 'SGD'
+# optimizer_type = 'Adam'
+# step_size = 1.
+# svgd = SVGD(
+#     kernel_base_type=kernel_base_type,
+#     kernel_structure=None,
+#     median_heuristic=False,
+#     repulsive_scaling=1.,
+#     geom_metric_type=None,
+#     verbose=True,
+#     bandwidth=5.,
+# )
 
-    #================== SVGD ===========================
+# kernel_base_type = 'RBF_Anisotropic'
+# # optimizer_type = 'SGD'
+# optimizer_type = 'Adam'
+# step_size = 0.1
+# svgd = SVGD(
+#     kernel_base_type=kernel_base_type,
+#     kernel_structure=None,
+#     median_heuristic=False,
+#     repulsive_scaling=1.,
+#     geom_metric_type='fisher',
+#     verbose=True,
+#     bandwidth=5.,
+# )
 
-    particles = particles_0.clone().cpu().numpy()
-    particles = torch.from_numpy(particles)
-    # kernel_base_type = 'RBF_Anisotropic' # 'RBF', 'IMQ'
-    kernel_base_type = 'RBF'
-    # optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
-    optimizer_type = 'SGD'
 
-    svgd = SVGD(
-        kernel_base_type=kernel_base_type,
-        kernel_structure=None,
-        median_heuristic=False,
-        repulsive_scaling=2.,
-        geom_metric_type='fisher',
-        verbose=True,
-    )
+kernel_base_type = 'RBF_Anisotropic'
+optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
+step_size = 0.1
+svgd = SVGD(
+    kernel_base_type=kernel_base_type,
+    kernel_structure=None,
+    median_heuristic=False,
+    repulsive_scaling=1.,
+    geom_metric_type='fisher',
+    verbose=True,
+    bandwidth=5.,
+)
 
-    particles, p_hist, pw_dists_sq = svgd.apply(
-                            particles,
-                            model,
-                            iters,
-                            eps,
-                            use_analytic_grads=False,
-                            optimizer_type=optimizer_type,
-                        )
+(particles,
+ p_hist,
+ pw_dists_sq) = svgd.apply(
+    particles,
+    model,
+    iters,
+    step_size,
+    # use_analytic_grads=True,
+    use_analytic_grads=False,
+    optimizer_type=optimizer_type,
+)
 
-    print("\nMean Est.: ", particles.mean(0))
-    print("Std Est.: ", particles.std(0))
+print("\nMean Est.: ", particles.mean(0))
+print("Std Est.: ", particles.std(0))
 
-    create_movie_2D(
-        p_hist,
-        model.log_prob,
-        to_numpy=True,
-        save_path='./svgd_{}_bhm_intel_np_{}_eps_{}.mp4'.format(
-            kernel_base_type,
-            num_particles,
-            eps,
-        ),
-        ax_limits=[-5, 5],
-        opt='SVGD',
-        kernel_base_type=kernel_base_type,
-        num_particles=num_particles,
-        eps=eps,
-    )
+create_movie_2D(
+    p_hist,
+    model.log_prob,
+    to_numpy=True,
+    save_path='./svgd_{}_bhm_intel_np_{}_eps_{}.mp4'.format(
+        kernel_base_type,
+        num_particles,
+        step_size,
+    ),
+    ax_limits=[-25, 25],
+    opt='SVGD',
+    kernel_base_type=kernel_base_type,
+    num_particles=num_particles,
+    eps=step_size,
+)

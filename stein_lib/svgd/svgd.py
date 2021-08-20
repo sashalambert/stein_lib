@@ -242,7 +242,7 @@ class SVGD():
             X,
             model,
             iters=100,
-            eps=1.,
+            step_size=1.,
             use_analytic_grads=False,
             optimizer_type='SGD'
     ):
@@ -279,13 +279,13 @@ class SVGD():
         # pw_distances_sq = torch.autograd.Variable(pw_distances_sq, requires_grad=True)
 
         if optimizer_type == 'SGD':
-            optimizer = torch.optim.SGD([X], lr=0.1)
+            optimizer = torch.optim.SGD([X], lr=step_size)
         elif optimizer_type == 'Adam':
-            optimizer = torch.optim.Adam([X], lr=0.1)
+            optimizer = torch.optim.Adam([X], lr=step_size)
         elif optimizer_type == 'LBFGS':
             optimizer = torch.optim.LBFGS(
                 [X],
-                lr=1.,
+                lr=step_size,
                 max_iter=100,
                 # max_eval=20 * 1.25,
                 tolerance_change=1e-9,
@@ -295,7 +295,7 @@ class SVGD():
         elif optimizer_type == 'FullBatchLBFGS':
             optimizer = FullBatchLBFGS(
                 [X],
-                lr=1.,
+                lr=step_size,
                 history_size=25,
                 line_search='None', #'Wolfe'
             )
@@ -307,20 +307,22 @@ class SVGD():
             optimizer.zero_grad()
             Hess = None
             if use_analytic_grads:
-                F = model.forward_model(X)
-                J = model.jacob_forward(X)
-                dlog_p = model.grad_log_p(X, F, J)
+                # F = model.forward_model(X)
+                # J = model.jacob_forward(X)
+                # dlog_p = model.grad_log_p(X, F, J)
+                dlog_p = model.grad_log_p(X)
 
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ]:
+                # if self.kernel_base_type in \
+                #         [
+                #             'RBF_Anisotropic',
+                #             'RBF_Matrix',
+                #             'IMQ_Matrix',
+                #             'RBF_Weighted_Matrix',
+                #         ]:
                     # Gauss-Newton approximation
-                    Hess = model.GN_hessian(X, J)  # returns hessian of negative log posterior
-                    Hess = -1 * Hess
+                    # Hess = model.GN_hessian(X, J)  # returns hessian of negative log posterior
+                    # Hess = -1 * Hess
+                    # Hess = get_jacobian(dlog_p, X)
             else:
                 log_p = model.log_prob(X).unsqueeze(1)
                 dlog_p = torch.autograd.grad(
@@ -328,14 +330,14 @@ class SVGD():
                     X,
                     create_graph=True,
                 )[0]
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'IMQ_Matrix',
-                            'RBF_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ]:
-                    Hess = get_jacobian(dlog_p, X)
+                # if self.kernel_base_type in \
+                #         [
+                #             'RBF_Anisotropic',
+                #             'IMQ_Matrix',
+                #             'RBF_Matrix',
+                #             'RBF_Weighted_Matrix',
+                #         ]:
+                #     Hess = get_jacobian(dlog_p, X)
 
             # SVGD gradient
             with torch.no_grad():
