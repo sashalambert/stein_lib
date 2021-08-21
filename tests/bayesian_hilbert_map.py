@@ -31,27 +31,29 @@ from tests.utils import create_movie_2D
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
-num_particles = 200
-iters = 1000
+num_particles = 100
+iters = 3000
+# iters = 200
 
 # Sample intial particles
 torch.manual_seed(1)
 
 ## Large Gaussian in center of intel map.
-prior_dist = Normal(loc=torch.tensor([3.,-10.]),
-                    scale=torch.tensor([10., 10.]))
+# prior_dist = Normal(loc=torch.tensor([3.,-10.]),
+#                     scale=torch.tensor([10., 10.]))
 
 ## Small gaussian in corner of intel map.
-# prior_dist = Normal(loc=torch.tensor([12.,-3.]),
-#                     scale=torch.tensor([1.,1.]))
+prior_dist = Normal(loc=torch.tensor([12.,-3.]),
+                    scale=torch.tensor([1.,1.]))
+
 particles_0 = prior_dist.sample((num_particles,))
 
 # Load model
 import bhmlib
 bhm_path = Path(bhmlib.__path__[0]).resolve()
 model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter100.pt'
-
-model = BayesianHilbertMap(model_file)
+ax_limits = [[-10, 20],[-25, 5]]
+model = BayesianHilbertMap(model_file, ax_limits)
 
 #================== SVGD ===========================
 particles = particles_0.clone().cpu().numpy()
@@ -71,9 +73,23 @@ particles = torch.from_numpy(particles)
 #     bandwidth=5.,
 # )
 
+kernel_base_type = 'RBF_Anisotropic'
+# optimizer_type = 'SGD'
+optimizer_type = 'Adam'
+step_size = 0.25
+svgd = SVGD(
+    kernel_base_type=kernel_base_type,
+    kernel_structure=None,
+    median_heuristic=False,
+    repulsive_scaling=1.,
+    geom_metric_type='fisher',
+    verbose=True,
+    bandwidth=5.,
+)
+
+
 # kernel_base_type = 'RBF_Anisotropic'
-# # optimizer_type = 'SGD'
-# optimizer_type = 'Adam'
+# optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
 # step_size = 0.1
 # svgd = SVGD(
 #     kernel_base_type=kernel_base_type,
@@ -84,20 +100,6 @@ particles = torch.from_numpy(particles)
 #     verbose=True,
 #     bandwidth=5.,
 # )
-
-
-kernel_base_type = 'RBF_Anisotropic'
-optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
-step_size = 0.1
-svgd = SVGD(
-    kernel_base_type=kernel_base_type,
-    kernel_structure=None,
-    median_heuristic=False,
-    repulsive_scaling=1.,
-    geom_metric_type='fisher',
-    verbose=True,
-    bandwidth=5.,
-)
 
 (particles,
  p_hist,
@@ -123,7 +125,7 @@ create_movie_2D(
         num_particles,
         step_size,
     ),
-    ax_limits=[-25, 25],
+    ax_limits=ax_limits,
     opt='SVGD',
     kernel_base_type=kernel_base_type,
     num_particles=num_particles,

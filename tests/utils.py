@@ -32,7 +32,7 @@ def create_movie_2D(
         particle_hist,
         log_prob,
         save_path="/tmp/stein_movie.mp4",
-        ax_limits=(-4, 4),
+        ax_limits=[[-4, 4],[4, 4]],
         to_numpy=False,
         kernel_base_type=None,
         opt=None,
@@ -56,8 +56,8 @@ def create_movie_2D(
     ax.set_title(case_name + '\n' + str(0) + '$ ^{th}$ iteration')
 
     ngrid = 100
-    x = np.linspace(ax_limits[0], ax_limits[1], ngrid)
-    y = np.linspace(ax_limits[0], ax_limits[1], ngrid)
+    x = np.linspace(ax_limits[0][0], ax_limits[0][1], ngrid)
+    y = np.linspace(ax_limits[1][0], ax_limits[1][1], ngrid)
     X, Y = np.meshgrid(x,y)
 
     grid = np.vstack(
@@ -73,8 +73,8 @@ def create_movie_2D(
         ).reshape(ngrid, ngrid)
 
     plt.contourf(X, Y, Z, 10)
-    xlim = ax_limits
-    ylim= ax_limits
+    xlim = ax_limits[0]
+    ylim = ax_limits[1]
     p_start = particle_hist[0]
     particles = plt.plot(p_start[:, 0], p_start[:, 1], 'ro', markersize=3)
     n_iter = len(particle_hist)
@@ -98,8 +98,8 @@ def create_movie_2D(
         fig,
         _animate,
         init_func=_init,
-        # interval=250,
-        interval=100,
+        # interval=100,
+        interval=25,
         blit=True,
         save_count=n_iter,
     )

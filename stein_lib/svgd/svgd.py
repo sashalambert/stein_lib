@@ -205,6 +205,7 @@ class SVGD():
             # Average Fisher matrix (likelihood only)
             np = dlog_lh.shape[0]
             M = torch.bmm(dlog_lh.reshape(np, -1, 1,), dlog_lh.reshape(np, 1, -1))
+            # M -= torch.eye(M.shape[1], M.shape[2]) * 1.e-8
         elif self.geom_metric_type == 'jacobian_product':
             # Average Fisher matrix (full posterior gradient)
             M = torch.bmm(Jacobian.transpose(1, 2), Jacobian)
@@ -311,7 +312,6 @@ class SVGD():
                 # J = model.jacob_forward(X)
                 # dlog_p = model.grad_log_p(X, F, J)
                 dlog_p = model.grad_log_p(X)
-
                 # if self.kernel_base_type in \
                 #         [
                 #             'RBF_Anisotropic',
@@ -350,6 +350,7 @@ class SVGD():
             # pw_distances_sq = pw_dists_sq.clone()
             # pw_distances_sq.grad = torch.zeros_like(pw_distances_sq)
             # print('max pw dist sq: ', pw_distances_sq.max())
+
             X.grad = -1. * Phi
             loss = 1.
             return loss
