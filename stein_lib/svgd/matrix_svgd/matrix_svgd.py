@@ -22,7 +22,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 from stein_lib.svgd.svgd import SVGD
-from svgd.matrix_svgd.base_kernels import (
+from stein_lib.svgd.matrix_svgd.base_kernels import (
     RBF_Matrix,
     IMQ_Matrix,
     RBF_Weighted_Matrix,
