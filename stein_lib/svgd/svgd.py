@@ -279,13 +279,13 @@ class SVGD():
         # pw_distances_sq = torch.autograd.Variable(pw_distances_sq, requires_grad=True)
 
         if optimizer_type == 'SGD':
-            optimizer = torch.optim.SGD([X], lr=0.1)
+            optimizer = torch.optim.SGD([X], lr=eps)
         elif optimizer_type == 'Adam':
-            optimizer = torch.optim.Adam([X], lr=0.1)
+            optimizer = torch.optim.Adam([X], lr=eps)
         elif optimizer_type == 'LBFGS':
             optimizer = torch.optim.LBFGS(
                 [X],
-                lr=1.,
+                lr=eps,
                 max_iter=100,
                 # max_eval=20 * 1.25,
                 tolerance_change=1e-9,
@@ -295,7 +295,7 @@ class SVGD():
         elif optimizer_type == 'FullBatchLBFGS':
             optimizer = FullBatchLBFGS(
                 [X],
-                lr=1.,
+                lr=eps,
                 history_size=25,
                 line_search='None', #'Wolfe'
             )
