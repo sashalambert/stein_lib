@@ -97,10 +97,10 @@ def create_movie_2D(
     ani = animation.FuncAnimation(
         fig,
         _animate,
+        frames=n_iter,
         init_func=_init,
-        # interval=100,
-        interval=25,
-        blit=True,
+        # interval=250,
+        interval=100,
         save_count=n_iter,
     )
 

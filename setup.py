@@ -10,7 +10,7 @@ if sys.version_info.major != 3:
 setup(
     name='steinlib',
     version='1.0.0',
-    packages=find_packages(),
+    packages=find_packages(exclude=('results*', '*results', 'tests')),
     description='Stein Variational Inference Library',
     url='https://github.com/sashalambert/stein_lib.git',
     author='Sasha Alexander Lambert',

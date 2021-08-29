@@ -22,9 +22,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 import torch
 from torch.distributions import Normal
-from svgd.matrix_svgd.matrix_svgd import MatrixSVGD
+from stein_lib.svgd.matrix_svgd.matrix_svgd import MatrixSVGD
 
-from stein_lib.models import doubleBanana_analytic
+from stein_lib.models.double_banana_analytic import doubleBanana_analytic
 from tests.utils import create_movie_2D
 
 torch.set_default_tensor_type(torch.DoubleTensor)
