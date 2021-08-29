@@ -163,7 +163,7 @@ for eps in eps_list:
             num_particles,
             eps,
         ),
-        ax_limits=[-5, 5],
+        ax_limits=[[-5, 5],[-5, 5]],
         opt='SVGD',
         kernel_base_type=kernel_base_type,
         num_particles=num_particles,

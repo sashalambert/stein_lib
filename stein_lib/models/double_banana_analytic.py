@@ -164,9 +164,9 @@ class doubleBanana_analytic:
         """
         return self.grad_log_prior(x) + self.grad_log_lh(x, F, J)
 
-    def GN_hessian(self, x, J=None):
+    def hessian(self, x, J=None):
         """
-        Gauss-Newton Hessian approximation of the negative log posterior.
+        Gauss-Newton Hessian approximation of the log posterior.
 
         Parameters
         ----------
@@ -179,8 +179,9 @@ class doubleBanana_analytic:
         if J is None:
             J = self.jacob_forward(x)
 
-        return J.reshape(self.dim, 1, -1) * J.reshape(1, self.dim, -1) / self.var_n \
+        Hess = J.reshape(self.dim, 1, -1) * J.reshape(1, self.dim, -1) / self.var_n \
               + (torch.eye(self.dim) / self.var_0).unsqueeze(2)
+        return -1. * Hess
 
 
 # num_particles = 100

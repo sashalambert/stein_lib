@@ -36,6 +36,7 @@ from .composite_kernels import (
 )
 from .LBFGS import FullBatchLBFGS, LBFGS
 from ..utils import get_jacobian, calc_pw_distances
+from stein_lib.models.double_banana_analytic import doubleBanana_analytic
 
 
 class SVGD():
@@ -308,36 +309,47 @@ class SVGD():
             optimizer.zero_grad()
             Hess = None
             if use_analytic_grads:
-                # F = model.forward_model(X)
-                # J = model.jacob_forward(X)
-                # dlog_p = model.grad_log_p(X, F, J)
-                dlog_p = model.grad_log_p(X)
-                # if self.kernel_base_type in \
-                #         [
-                #             'RBF_Anisotropic',
-                #             'RBF_Matrix',
-                #             'IMQ_Matrix',
-                #             'RBF_Weighted_Matrix',
-                #         ]:
-                    # Gauss-Newton approximation
-                    # Hess = model.GN_hessian(X, J)  # returns hessian of negative log posterior
-                    # Hess = -1 * Hess
-                    # Hess = get_jacobian(dlog_p, X)
+
+                if isinstance(model, doubleBanana_analytic):
+                    # Used only by double_banana model
+                    F = model.forward_model(X)
+                    J = model.jacob_forward(X)
+                    dlog_p = model.grad_log_p(X, F, J)
+                else:
+                    dlog_p = model.grad_log_p(X)
+
+                if self.kernel_base_type in \
+                        [
+                            'RBF_Anisotropic',
+                            'RBF_Matrix',
+                            'IMQ_Matrix',
+                            'RBF_Weighted_Matrix',
+                        ] and \
+                    self.geom_metric_type not in ['fisher']:
+
+                    if isinstance(model, doubleBanana_analytic):
+                        ## Used only by double_banana model
+                        # Gauss-Newton approximation
+                        Hess = model.hessian(X, J)  # returns hessian of negative log posterior
+                    else:
+                        Hess = model.hessian(dlog_p, X)
             else:
+                # Numerical Gradients
                 log_p = model.log_prob(X).unsqueeze(1)
                 dlog_p = torch.autograd.grad(
                     log_p.sum(),
                     X,
                     create_graph=True,
                 )[0]
-                # if self.kernel_base_type in \
-                #         [
-                #             'RBF_Anisotropic',
-                #             'IMQ_Matrix',
-                #             'RBF_Matrix',
-                #             'RBF_Weighted_Matrix',
-                #         ]:
-                #     Hess = get_jacobian(dlog_p, X)
+                if self.kernel_base_type in \
+                        [
+                            'RBF_Anisotropic',
+                            'RBF_Matrix',
+                            'IMQ_Matrix',
+                            'RBF_Weighted_Matrix',
+                        ] and \
+                    self.geom_metric_type not in ['fisher']:
+                    Hess = get_jacobian(dlog_p, X)
 
             # SVGD gradient
             with torch.no_grad():
