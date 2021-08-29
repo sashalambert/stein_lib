@@ -21,15 +21,10 @@ class BayesianHilbertMap:
         log_p = self.bhm.log_prob_vacancy(x)
         if self.limits is not None:
             scale = 1.
-            log_p -= torch.exp(-scale*(x[:, 0] - self.limits[0, 0]))
-            log_p -= torch.exp( scale*(x[:, 0] - self.limits[0, 1]))
-            log_p -= torch.exp(-scale*(x[:, 1] - self.limits[1, 0]))
-            log_p -= torch.exp( scale*(x[:, 1] - self.limits[1, 1]))
-            #
-            # log_p -= -scale*(x[:, 0] - self.limits[0, 0])
-            # log_p -=  scale*(x[:, 0] - self.limits[0, 1])
-            # log_p -= -scale*(x[:, 1] - self.limits[1, 0])
-            # log_p -=  scale*(x[:, 1] - self.limits[1, 1])
+            log_p -= torch.exp(-scale*(x[:, 0]  - self.limits[0, 0]))
+            log_p -= torch.exp( scale*(x[:, 0]  - self.limits[0, 1]))
+            log_p -= torch.exp(-scale*(x[:, 1]  - self.limits[1, 0]))
+            log_p -= torch.exp( scale*(x[:, 1]  - self.limits[1, 1]))
         return log_p
 
     def grad_log_p(self, x):

@@ -22,9 +22,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 import torch
-from torch.distributions import Normal, Uniform
-from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-
+from torch.distributions import Normal
 from stein_lib.svgd.svgd import SVGD
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
@@ -33,9 +31,9 @@ from tests.utils import create_movie_2D
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
-num_particles = 300
-# iters = 3000
-iters = 200
+num_particles = 100
+iters = 3000
+# iters = 200
 
 # Sample intial particles
 torch.manual_seed(1)
@@ -45,22 +43,8 @@ torch.manual_seed(1)
 #                     scale=torch.tensor([10., 10.]))
 
 ## Small gaussian in corner of intel map.
-# prior_dist = Normal(loc=torch.tensor([12.,-3.]),
-#                     scale=torch.tensor([1.,1.]))
-
-## Two small gaussians in opposing corners of intel map.
-sigma = 5.
-radii_list = [[sigma, sigma],] * 2
-prior_dist = mixture_of_gaussians(
-    num_comp=2,
-    mu_list=[[12.,-3.], [-5, -18] ],
-    sigma_list=radii_list,
-)
-
-## Uniform distribution
-# prior_dist = Uniform(low=torch.tensor([-10., -25.]),
-#                     high=torch.tensor([20., 5.]))
-
+prior_dist = Normal(loc=torch.tensor([12.,-3.]),
+                    scale=torch.tensor([1.,1.]))
 
 particles_0 = prior_dist.sample((num_particles,))
 
@@ -90,10 +74,9 @@ particles = torch.from_numpy(particles)
 # )
 
 kernel_base_type = 'RBF_Anisotropic'
-# optimizer_tsype = 'SGD'
+# optimizer_type = 'SGD'
 optimizer_type = 'Adam'
 step_size = 0.25
-
 svgd = SVGD(
     kernel_base_type=kernel_base_type,
     kernel_structure=None,
