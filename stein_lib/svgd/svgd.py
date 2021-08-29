@@ -35,7 +35,7 @@ from .composite_kernels import (
     iid,
 )
 from .LBFGS import FullBatchLBFGS, LBFGS
-from ..utils import get_jacobian, calc_pw_distances
+from ..utils import get_jacobian, calc_pw_distances, calc_scaled_pw_distances
 from stein_lib.models.double_banana_analytic import doubleBanana_analytic
 
 
@@ -63,6 +63,16 @@ class SVGD():
         self.base_kernel = self.get_base_kernel(**kernel_params)
         self.kernel = self.get_kernel(**kernel_params)
         self.geom_metric_type = kernel_params['geom_metric_type']
+        self.hessian_scaled = False
+        self._M = None
+        if self.kernel_base_type in \
+                        [
+                            'RBF_Anisotropic',
+                            'RBF_Matrix',
+                            'IMQ_Matrix',
+                            'RBF_Weighted_Matrix',
+                        ]:
+            self.hessian_scaled = True
 
     def get_base_kernel(
             self,
@@ -237,6 +247,8 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
+        self._pw_dists_sq = pw_dists_sq
+
         return phi, pw_dists_sq
 
     def apply(
@@ -318,13 +330,7 @@ class SVGD():
                 else:
                     dlog_p = model.grad_log_p(X)
 
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ] and \
+                if self.hessian_scaled and \
                     self.geom_metric_type not in ['fisher']:
 
                     if isinstance(model, doubleBanana_analytic):
@@ -341,13 +347,7 @@ class SVGD():
                     X,
                     create_graph=True,
                 )[0]
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ] and \
+                if self.hessian_scaled and \
                     self.geom_metric_type not in ['fisher']:
                     Hess = get_jacobian(dlog_p, X)
 
@@ -384,7 +384,19 @@ class SVGD():
             print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
             print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
-        # Pairwise distances
-        pw_dists = calc_pw_distances(X)
+        # Euclidean Pairwise distances
 
-        return X, particle_history, pw_dists
+        if self.hessian_scaled:
+            # Hessian-scaled pw_dists
+            pw_dists_scaled = torch.sqrt(self._pw_dists_sq)
+            pw_dists = calc_pw_distances(X)
+        else:
+            pw_dists = torch.sqrt(self._pw_dists_sq)
+            pw_dists_scaled = None
+
+        return (
+            X,
+            particle_history,
+            pw_dists,
+            pw_dists_scaled,
+        )

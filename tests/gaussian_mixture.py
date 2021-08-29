@@ -26,7 +26,7 @@ from torch.distributions import Normal
 from stein_lib.svgd.svgd import SVGD
 
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from tests.utils import create_movie_2D
+from stein_lib.utils import create_movie_2D
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 

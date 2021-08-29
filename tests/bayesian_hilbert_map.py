@@ -26,25 +26,27 @@ from torch.distributions import Normal
 from stein_lib.svgd.svgd import SVGD
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
-from tests.utils import create_movie_2D
+from stein_lib.utils import create_movie_2D
+# from stein_lib.prm_utils import get_graph
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
 num_particles = 100
-iters = 3000
+# iters = 3000
 # iters = 200
+iters = 1
 
 # Sample intial particles
 torch.manual_seed(1)
 
 ## Large Gaussian in center of intel map.
-# prior_dist = Normal(loc=torch.tensor([3.,-10.]),
-#                     scale=torch.tensor([10., 10.]))
+prior_dist = Normal(loc=torch.tensor([3.,-10.]),
+                    scale=torch.tensor([10., 10.]))
 
 ## Small gaussian in corner of intel map.
-prior_dist = Normal(loc=torch.tensor([12.,-3.]),
-                    scale=torch.tensor([1.,1.]))
+# prior_dist = Normal(loc=torch.tensor([12.,-3.]),
+#                     scale=torch.tensor([1.,1.]))
 
 particles_0 = prior_dist.sample((num_particles,))
 
@@ -103,7 +105,8 @@ svgd = SVGD(
 
 (particles,
  p_hist,
- pw_dists_sq) = svgd.apply(
+ pw_dists,
+ pw_dists_scaled) = svgd.apply(
     particles,
     model,
     iters,
@@ -115,6 +118,8 @@ svgd = SVGD(
 
 print("\nMean Est.: ", particles.mean(0))
 print("Std Est.: ", particles.std(0))
+
+# nodes, edges = get_graph(particles, pw_dists)
 
 create_movie_2D(
     p_hist,
