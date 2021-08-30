@@ -9,7 +9,6 @@ class BayesianHilbertMap:
             self,
             file_path=None,
             limits=((-10, 20,), (-25, 5)),
-            # limits=torch.tensor([[-8, 18,], [-23, 3]]),
     ):
 
         # Load trained Bayesian Hilbert Map

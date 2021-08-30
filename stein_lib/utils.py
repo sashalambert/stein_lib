@@ -63,6 +63,49 @@ def calc_scaled_pw_distances(X, M):
     pw_dists = torch.sqrt(pw_dists_sq)
     return pw_dists
 
+def plot_graph_2D(
+        particles,
+        edges,
+        log_prob,
+        save_path='/tmp/graph.png',
+        to_numpy=False,
+        ax_limits=[[-4, 4],[4, 4]],
+):
+
+    fig = plt.figure(figsize=(5,5))
+    ax = plt.gca()
+
+    ngrid = 100
+    x = np.linspace(ax_limits[0][0], ax_limits[0][1], ngrid)
+    y = np.linspace(ax_limits[1][0], ax_limits[1][1], ngrid)
+    X, Y = np.meshgrid(x,y)
+
+    grid = np.vstack(
+                (np.ndarray.flatten(X), np.ndarray.flatten(Y)),
+            )
+    if to_numpy:
+        grid = torch.from_numpy(grid)
+        z = log_prob(grid.t()).cpu().numpy()
+        Z = np.exp(z).reshape(ngrid, ngrid)
+        particles = particles.detach().cpu().numpy()
+    else:
+        Z = np.exp(
+            log_prob(grid),
+        ).reshape(ngrid, ngrid)
+
+    plt.contourf(X, Y, Z, 10)
+
+    for i in range(edges.shape[0]):
+        node_pair = edges[i]
+        plt.plot(particles[node_pair, 0], particles[node_pair, 1], 'k', markersize=1)
+
+    xlim = ax_limits[0]
+    ylim = ax_limits[1]
+    plt.plot(particles[:, 0], particles[:, 1], 'ro', markersize=3)
+
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    plt.show()
 
 def create_movie_2D(
         particle_hist,

@@ -22,31 +22,46 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 import torch
-from torch.distributions import Normal
+from torch.distributions import Normal, Uniform
+from stein_lib.models.gaussian_mixture import mixture_of_gaussians
 from stein_lib.svgd.svgd import SVGD
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
-from stein_lib.utils import create_movie_2D
-# from stein_lib.prm_utils import get_graph
+from stein_lib.utils import create_movie_2D, plot_graph_2D
+from stein_lib.prm_utils import get_graph
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
 num_particles = 100
 # iters = 3000
-# iters = 200
-iters = 1
+iters = 200
+# iters = 1
 
 # Sample intial particles
 torch.manual_seed(1)
 
 ## Large Gaussian in center of intel map.
-prior_dist = Normal(loc=torch.tensor([3.,-10.]),
-                    scale=torch.tensor([10., 10.]))
+# prior_dist = Normal(loc=torch.tensor([3.,-10.]),
+#                     scale=torch.tensor([10., 10.]))
 
 ## Small gaussian in corner of intel map.
 # prior_dist = Normal(loc=torch.tensor([12.,-3.]),
 #                     scale=torch.tensor([1.,1.]))
+
+## Two small gaussians in opposing corners of intel map.
+# sigma = 5.
+# radii_list = [[sigma, sigma],] * 2
+# prior_dist = mixture_of_gaussians(
+#     num_comp=2,
+#     mu_list=[[12.,-3.], [-5, -18] ],
+#     sigma_list=radii_list,
+# )
+
+## Uniform distribution
+prior_dist = Uniform(low=torch.tensor([-10., -25.]),
+                    high=torch.tensor([20., 5.]))
+
 
 particles_0 = prior_dist.sample((num_particles,))
 
@@ -119,7 +134,28 @@ svgd = SVGD(
 print("\nMean Est.: ", particles.mean(0))
 print("Std Est.: ", particles.std(0))
 
-# nodes, edges = get_graph(particles, pw_dists)
+nodes, edges = get_graph(
+    particles,
+    pw_dists,
+    model,
+    # prob_thresh=1.e-3,
+    prob_thresh=0.6,
+    connect_radius=5.,
+)
+
+plot_graph_2D(
+    particles,
+    edges,
+    model.log_prob,
+    ax_limits=ax_limits,
+    to_numpy=True,
+    save_path='./graph_svgd_{}_bhm_intel_np_{}_eps_{}.mp4'.format(
+        kernel_base_type,
+        num_particles,
+        step_size,
+    ),
+)
+
 
 create_movie_2D(
     p_hist,

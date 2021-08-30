@@ -289,9 +289,6 @@ class SVGD():
         dts = []
         X = torch.autograd.Variable(X, requires_grad=True)
 
-        # pw_distances_sq = torch.empty(X.shape[0], X.shape[0])
-        # pw_distances_sq = torch.autograd.Variable(pw_distances_sq, requires_grad=True)
-
         if optimizer_type == 'SGD':
             optimizer = torch.optim.SGD([X], lr=step_size)
         elif optimizer_type == 'Adam':
@@ -359,10 +356,6 @@ class SVGD():
                     dlog_lh=dlog_p,
                     Hess=Hess,
                 )
-            # pw_distances_sq = pw_dists_sq.clone()
-            # pw_distances_sq.grad = torch.zeros_like(pw_distances_sq)
-            # print('max pw dist sq: ', pw_distances_sq.max())
-
             X.grad = -1. * Phi
             loss = 1.
             return loss
@@ -384,13 +377,12 @@ class SVGD():
             print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
             print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
-        # Euclidean Pairwise distances
-
         if self.hessian_scaled:
             # Hessian-scaled pw_dists
             pw_dists_scaled = torch.sqrt(self._pw_dists_sq)
             pw_dists = calc_pw_distances(X)
         else:
+            # Euclidean Pairwise distances
             pw_dists = torch.sqrt(self._pw_dists_sq)
             pw_dists_scaled = None
 
