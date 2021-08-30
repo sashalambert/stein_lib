@@ -247,7 +247,8 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
-        self._pw_dists_sq = pw_dists_sq
+        self._pw_dists_sq = pw_dists_sq.detach()
+        self._pw_dists_sq.requires_grad = False
 
         return phi, pw_dists_sq
 
@@ -385,6 +386,9 @@ class SVGD():
             # Euclidean Pairwise distances
             pw_dists = torch.sqrt(self._pw_dists_sq)
             pw_dists_scaled = None
+
+        pw_dists = pw_dists.detach()
+        pw_dists_scaled = pw_dists_scaled.detach()
 
         return (
             X,

@@ -1,3 +1,27 @@
+"""
+Copyright (c) 2020-2021 Alexander Lambert
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
+
+
 import torch
 import numpy as np
 import torch
@@ -63,10 +87,14 @@ def calc_scaled_pw_distances(X, M):
     pw_dists = torch.sqrt(pw_dists_sq)
     return pw_dists
 
+
 def plot_graph_2D(
         particles,
         edges,
         log_prob,
+        edge_vals=None,
+        edge_coll_pts=None,
+        edge_coll_thresh=None,
         save_path='/tmp/graph.png',
         to_numpy=False,
         ax_limits=[[-4, 4],[4, 4]],
@@ -83,6 +111,7 @@ def plot_graph_2D(
     grid = np.vstack(
                 (np.ndarray.flatten(X), np.ndarray.flatten(Y)),
             )
+
     if to_numpy:
         grid = torch.from_numpy(grid)
         z = log_prob(grid.t()).cpu().numpy()
@@ -97,7 +126,19 @@ def plot_graph_2D(
 
     for i in range(edges.shape[0]):
         node_pair = edges[i]
-        plt.plot(particles[node_pair, 0], particles[node_pair, 1], 'k', markersize=1)
+        color = 'k'
+        if edge_vals is not None:
+            if edge_vals[i] < edge_coll_thresh:
+                color = 'b'
+        plt.plot(
+            particles[node_pair, 0],
+            particles[node_pair, 1],
+             color,
+             markersize=1,
+        )
+
+    if edge_coll_pts is not None:
+        plt.plot(edge_coll_pts[:, 0], edge_coll_pts[:, 1], 'go', markersize=2)
 
     xlim = ax_limits[0]
     ylim = ax_limits[1]
@@ -105,7 +146,9 @@ def plot_graph_2D(
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+    plt.savefig(save_path)
     plt.show()
+
 
 def create_movie_2D(
         particle_hist,
