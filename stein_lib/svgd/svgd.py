@@ -186,6 +186,7 @@ class SVGD():
         Hess=None,
         Hess_prior=None,
         Jacobian=None,
+        copy_pw_dists=False
     ):
         """
         Computes the SVGD gradient.
@@ -247,8 +248,8 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
-        self._pw_dists_sq = pw_dists_sq.detach()
-        self._pw_dists_sq.requires_grad = False
+        self._pw_dists_sq = pw_dists_sq
+        self._X = X
 
         return phi, pw_dists_sq
 
@@ -378,17 +379,8 @@ class SVGD():
             print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
             print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
-        if self.hessian_scaled:
-            # Hessian-scaled pw_dists
-            pw_dists_scaled = torch.sqrt(self._pw_dists_sq)
-            pw_dists = calc_pw_distances(X)
-        else:
-            # Euclidean Pairwise distances
-            pw_dists = torch.sqrt(self._pw_dists_sq)
-            pw_dists_scaled = None
-
-        pw_dists = pw_dists.detach()
-        pw_dists_scaled = pw_dists_scaled.detach()
+        (pw_dists,
+         pw_dists_scaled,) = self.get_pairwise_dists()
 
         return (
             X,
@@ -396,3 +388,18 @@ class SVGD():
             pw_dists,
             pw_dists_scaled,
         )
+
+    def get_pairwise_dists(self):
+        # pw_dists output from svgd-gradient computation
+        pw_dists_out = torch.sqrt(self._pw_dists_sq.clone().detach())
+        X = self._X.clone().detach()
+
+        if self.hessian_scaled:
+            # Hessian-scaled pw_dists
+            pw_dists_scaled = pw_dists_out
+            pw_dists = calc_pw_distances(X)
+        else:
+            # Euclidean Pairwise distances
+            pw_dists = pw_dists_out
+            pw_dists_scaled = None
+        return pw_dists, pw_dists_scaled
