@@ -141,6 +141,19 @@ class SVGD():
         grad = k_XX.mm(dlog_p) / k_XX.size(1)
         rep = grad_k.mean(1)
 
+        if self.verbose:
+            print('~' * 30)
+            print('get_svgd_terms')
+
+            check(k_XX, 'k_XX')
+            check(grad_k, 'grad_k')
+            check(grad, 'grad')
+
+            # mashed = torch.cat((X, dlog_p), dim=1)
+            # print(mashed)
+            # np.savetxt(f'{self.__iters:04}.csv', mashed.numpy(), fmt='%.2f', delimiter=',')
+            print('~' * 30)
+
         return grad, rep, pw_dists_sq
 
     def evaluate_kernel(self, X, M=None):
@@ -349,10 +362,16 @@ class SVGD():
             # pw_distances_sq.grad = torch.zeros_like(pw_distances_sq)
             # print('max pw dist sq: ', pw_distances_sq.max())
             X.grad = -1. * Phi
+            check(X.grad, 'X.grad')
             loss = 1.
             return loss
 
+        orig_verbose = self.verbose
         for i in range(iters):
+            self.verbose = orig_verbose or (i in (100, 101, 102))
+            if self.verbose:
+                print(i)
+                self.__iters = i
             t_start = time()
             if isinstance(optimizer, FullBatchLBFGS):
                 options = {'closure': closure, 'current_loss': closure()}
@@ -364,6 +383,7 @@ class SVGD():
                 print('dt (SVGD): {}\n'.format(dt))
             dts.append(dt)
             particle_history.append(X.clone().detach().cpu().numpy())
+        self.verbose = orig_verbose
         dt_stats = np.array(dts)
         if self.verbose:
             print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
@@ -373,3 +393,24 @@ class SVGD():
         pw_dists = calc_pw_distances(X)
 
         return X, particle_history, pw_dists
+
+
+def check(tsr, name):
+    isinf = torch.isinf(tsr)
+    if isinf.any():
+        if isinf.all():
+            infind = 'all'
+        else:
+            infind = torch.nonzero(isinf)
+        print(name, 'isinf', infind, flush=True)
+
+    isnan = torch.isnan(tsr)
+    if isnan.any():
+        if isnan.all():
+            nanind = 'all'
+        else:
+            nanind = torch.nonzero(isnan)
+        print(name, 'isnan', nanind, flush=True)
+
+    if (tsr.abs() > 1e6).any():
+        print(name, 'isvlarge', flush=True)
