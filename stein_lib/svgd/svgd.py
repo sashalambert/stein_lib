@@ -46,61 +46,48 @@ class SVGD():
 
     def __init__(
             self,
-            kernel_base_type='RBF',
+            kernel=None,
             kernel_structure=None,
             verbose=False,
             control_dim=None,
             repulsive_scaling=1.,
-            **kernel_params,
+            **kernel_params, #not sure if necessary anymore
     ):
 
         self.verbose = verbose
-        self.kernel_base_type = kernel_base_type
+        self.kernel_base_type = kernel.__class__.__name__
         self.kernel_structure = kernel_structure
         self.ctrl_dim = control_dim
         self.repulsive_scaling = repulsive_scaling
 
-        self.base_kernel = self.get_base_kernel(**kernel_params)
+        self.base_kernel = kernel 
         self.kernel = self.get_kernel(**kernel_params)
         self.geom_metric_type = kernel_params['geom_metric_type']
         self.hessian_scaled = False
         self._M = None
-        if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ]:
+
+        supported_base_kernels = [
+            'ABCMeta', # not entirely sure why this is necessary yet
+            'RBF',
+            'IMQ',
+            'RBF_Anisotropic',
+            'Linear',
+        ]
+        hessian_scaled_kernels = [
+            'RBF_Anisotropic',
+            'RBF_Matrix',
+            'IMQ_Matrix',
+            'RBF_Weighted_Matrix',
+        ]
+        if self.kernel_base_type in hessian_scaled_kernels :
             self.hessian_scaled = True
 
-    def get_base_kernel(
-            self,
-            **kernel_params,
-    ):
-        """
 
-        """
-        if self.kernel_base_type == 'RBF':
-            return RBF(
-                **kernel_params,
-            )
-        elif self.kernel_base_type == 'IMQ':
-            return IMQ(
-                **kernel_params,
-            )
-        elif self.kernel_base_type == 'RBF_Anisotropic':
-            return RBF_Anisotropic(
-                **kernel_params,
-            )
-        elif self.kernel_base_type == 'Linear':
-            return Linear(
-                **kernel_params,
-            )
-        else:
-            raise IOError('Stein kernel type not recognized: ',
-                          self.kernel_base_type)
+        #TODO: check if this is semantically correct
+        if self.kernel_base_type not in supported_base_kernels: 
+            raise IOError('Stein kernel type not recognized: ', self.kernel_base_type)
 
+    # this iid wrapper can be included when building kernel rather than apart of this class
     def get_kernel(
             self,
             **kernel_params,
@@ -257,9 +244,8 @@ class SVGD():
             X,
             model,
             iters=100,
-            step_size=1.,
             use_analytic_grads=False,
-            optimizer_type='SGD'
+            optimizer=None,
     ):
         """
         Runs SVGD optimization on a distribution model, given a particle
@@ -280,7 +266,8 @@ class SVGD():
         use_analytic_grads: Bool
             Set to 'True' if probability model uses analytic gradients. If set to
             'False', numerical gradient will be computed.
-        optimizer_type: str
+        optimizer: torch.optim.Optimizer
+            This should be initialized outside of svgd and passed to `apply`.
             Optimizer used for updates.
         """
 
@@ -290,29 +277,33 @@ class SVGD():
         dts = []
         X = torch.autograd.Variable(X, requires_grad=True)
 
-        if optimizer_type == 'SGD':
-            optimizer = torch.optim.SGD([X], lr=step_size)
-        elif optimizer_type == 'Adam':
-            optimizer = torch.optim.Adam([X], lr=step_size)
-        elif optimizer_type == 'LBFGS':
-            optimizer = torch.optim.LBFGS(
-                [X],
-                lr=step_size,
-                max_iter=100,
-                # max_eval=20 * 1.25,
-                tolerance_change=1e-9,
-                history_size=25,
-                line_search_fn=None, #'strong_wolfe'
-            )
-        elif optimizer_type == 'FullBatchLBFGS':
-            optimizer = FullBatchLBFGS(
-                [X],
-                lr=step_size,
-                history_size=25,
-                line_search='None', #'Wolfe'
-            )
-        else:
-            raise NotImplementedError
+        # reset optimizer params to empty and add particles as target parameters
+        optimizer.param_groups[0]['params'] = []
+        optimizer.param_groups[0]['params'].append(X)
+
+#        if optimizer_type == 'SGD':
+#            optimizer = torch.optim.SGD([X], lr=step_size)
+#        elif optimizer_type == 'Adam':
+#            optimizer = torch.optim.Adam([X], lr=step_size)
+#        elif optimizer_type == 'LBFGS':
+#            optimizer = torch.optim.LBFGS(
+#                [X],
+#                lr=step_size,
+#                max_iter=100,
+#                # max_eval=20 * 1.25,
+#                tolerance_change=1e-9,
+#                history_size=25,
+#                line_search_fn=None, #'strong_wolfe'
+#            )
+#        elif optimizer_type == 'FullBatchLBFGS':
+#            optimizer = FullBatchLBFGS(
+#                [X],
+#                lr=step_size,
+#                history_size=25,
+#                line_search='None', #'Wolfe'
+#            )
+#        else:
+#            raise NotImplementedError
 
         # Optimizer type
         def closure():
