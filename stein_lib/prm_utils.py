@@ -74,13 +74,19 @@ def get_graph(
         if include_coll_pts:
             edge_coll_pts.append(coll_pts) # for debugging
 
+        
     edge_coll_vals = torch.stack(edge_coll_vals, dim=0)
+    edge_coll_binary = edge_coll_vals > collision_thresh #TODO: verify this is correct
     edge_coll_num_pts = torch.stack(edge_num_pts)
 
     if include_coll_pts:
         edge_coll_pts = torch.cat(edge_coll_pts, dim=0) # for debugging
 
-    edge_lengths = pw_dists[node_inds]
+    #edge_lengths = pw_dists[node_inds]
+    # inefficient but first attempt TODO: vectorize
+    edge_lengths = torch.empty(size=(len(node_inds),2)) 
+    for i, idx in enumerate(node_inds):
+        edge_lengths[i] = pw_dists[idx[0],idx[1]]
 
     if not include_coll_pts:
         edge_coll_pts = None
@@ -95,6 +101,7 @@ def get_graph(
         node_inds,
         edge_lengths,
         edge_coll_vals,
+        edge_coll_binary,
         edge_coll_num_pts,
         edge_coll_pts,
         params,
