@@ -364,10 +364,12 @@ class SVGD():
             # print('max pw dist sq: ', pw_distances_sq.max())
 
             X.grad = -1. * Phi
+            # check(X.grad, 'X.grad')
             loss = 1.
             return loss
 
         for i in range(iters):
+            self.i = i
             t_start = time()
             if isinstance(optimizer, FullBatchLBFGS):
                 options = {'closure': closure, 'current_loss': closure()}
@@ -388,3 +390,25 @@ class SVGD():
         pw_dists = calc_pw_distances(X)
 
         return X, particle_history, pw_dists
+
+
+def check(tsr, name):
+    """Check a tensor for inf/nan/large values."""
+    isinf = torch.isinf(tsr)
+    if isinf.any():
+        if isinf.all():
+            infind = 'all'
+        else:
+            infind = torch.nonzero(isinf)
+        print(name, 'isinf', infind, flush=True)
+
+    isnan = torch.isnan(tsr)
+    if isnan.any():
+        if isnan.all():
+            nanind = 'all'
+        else:
+            nanind = torch.nonzero(isnan)
+        print(name, 'isnan', nanind, flush=True)
+
+    if (tsr.abs() > 1e6).any():
+        print(name, 'isvlarge', flush=True)
