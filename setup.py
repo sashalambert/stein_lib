@@ -19,5 +19,6 @@ setup(
         'torch',
         'pyro-ppl',
         'matplotlib',
+        'seaborn',
     ],
 )
