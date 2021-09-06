@@ -25,7 +25,7 @@ from torch.distributions import Normal
 from stein_lib.svgd.matrix_svgd.matrix_svgd import MatrixSVGD
 
 from stein_lib.models.double_banana_analytic import doubleBanana_analytic
-from tests.utils import create_movie_2D
+from stein_lib.utils import create_movie_2D
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 

@@ -1,3 +1,26 @@
+"""
+Copyright (c) 2020-2021 Alexander Lambert
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
+
 import numpy as np
 import torch
 from pathlib import Path
@@ -9,7 +32,6 @@ class BayesianHilbertMap:
             self,
             file_path=None,
             limits=((-10, 20,), (-25, 5)),
-            # limits=torch.tensor([[-8, 18,], [-23, 3]]),
     ):
 
         # Load trained Bayesian Hilbert Map
@@ -21,10 +43,10 @@ class BayesianHilbertMap:
         log_p = self.bhm.log_prob_vacancy(x)
         if self.limits is not None:
             scale = 1.
-            log_p -= torch.exp(-scale*(x[:, 0]  - self.limits[0, 0]))
-            log_p -= torch.exp( scale*(x[:, 0]  - self.limits[0, 1]))
-            log_p -= torch.exp(-scale*(x[:, 1]  - self.limits[1, 0]))
-            log_p -= torch.exp( scale*(x[:, 1]  - self.limits[1, 1]))
+            log_p -= torch.exp(-scale*(x[:, 0] - self.limits[0, 0]))
+            log_p -= torch.exp( scale*(x[:, 0] - self.limits[0, 1]))
+            log_p -= torch.exp(-scale*(x[:, 1] - self.limits[1, 0]))
+            log_p -= torch.exp( scale*(x[:, 1] - self.limits[1, 1]))
         return log_p
 
     def grad_log_p(self, x):

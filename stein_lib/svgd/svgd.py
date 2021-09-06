@@ -35,7 +35,7 @@ from .composite_kernels import (
     iid,
 )
 from .LBFGS import FullBatchLBFGS, LBFGS
-from ..utils import get_jacobian, calc_pw_distances
+from ..utils import get_jacobian, calc_pw_distances, calc_scaled_pw_distances
 from stein_lib.models.double_banana_analytic import doubleBanana_analytic
 
 
@@ -63,6 +63,16 @@ class SVGD():
         self.base_kernel = self.get_base_kernel(**kernel_params)
         self.kernel = self.get_kernel(**kernel_params)
         self.geom_metric_type = kernel_params['geom_metric_type']
+        self.hessian_scaled = False
+        self._M = None
+        if self.kernel_base_type in \
+                        [
+                            'RBF_Anisotropic',
+                            'RBF_Matrix',
+                            'IMQ_Matrix',
+                            'RBF_Weighted_Matrix',
+                        ]:
+            self.hessian_scaled = True
 
     def get_base_kernel(
             self,
@@ -176,6 +186,7 @@ class SVGD():
         Hess=None,
         Hess_prior=None,
         Jacobian=None,
+        copy_pw_dists=False
     ):
         """
         Computes the SVGD gradient.
@@ -237,6 +248,9 @@ class SVGD():
         # SVGD gradient
         phi = grad + self.repulsive_scaling * rep
 
+        self._pw_dists_sq = pw_dists_sq
+        self._X = X
+
         return phi, pw_dists_sq
 
     def apply(
@@ -277,9 +291,6 @@ class SVGD():
         dts = []
         X = torch.autograd.Variable(X, requires_grad=True)
 
-        # pw_distances_sq = torch.empty(X.shape[0], X.shape[0])
-        # pw_distances_sq = torch.autograd.Variable(pw_distances_sq, requires_grad=True)
-
         if optimizer_type == 'SGD':
             optimizer = torch.optim.SGD([X], lr=step_size)
         elif optimizer_type == 'Adam':
@@ -318,13 +329,7 @@ class SVGD():
                 else:
                     dlog_p = model.grad_log_p(X)
 
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ] and \
+                if self.hessian_scaled and \
                     self.geom_metric_type not in ['fisher']:
 
                     if isinstance(model, doubleBanana_analytic):
@@ -341,13 +346,7 @@ class SVGD():
                     X,
                     create_graph=True,
                 )[0]
-                if self.kernel_base_type in \
-                        [
-                            'RBF_Anisotropic',
-                            'RBF_Matrix',
-                            'IMQ_Matrix',
-                            'RBF_Weighted_Matrix',
-                        ] and \
+                if self.hessian_scaled and \
                     self.geom_metric_type not in ['fisher']:
                     Hess = get_jacobian(dlog_p, X)
 
@@ -359,10 +358,6 @@ class SVGD():
                     dlog_lh=dlog_p,
                     Hess=Hess,
                 )
-            # pw_distances_sq = pw_dists_sq.clone()
-            # pw_distances_sq.grad = torch.zeros_like(pw_distances_sq)
-            # print('max pw dist sq: ', pw_distances_sq.max())
-
             X.grad = -1. * Phi
             # check(X.grad, 'X.grad')
             loss = 1.
@@ -386,11 +381,30 @@ class SVGD():
             print("\nAvg. SVGD compute time: {}".format(dt_stats.mean()))
             print("Std. dev. SVGD compute time: {}\n".format(dt_stats.std()))
 
-        # Pairwise distances
-        pw_dists = calc_pw_distances(X)
+        (pw_dists,
+         pw_dists_scaled,) = self.get_pairwise_dists()
 
-        return X, particle_history, pw_dists
+        return (
+            X,
+            particle_history,
+            pw_dists,
+            pw_dists_scaled,
+        )
 
+    def get_pairwise_dists(self):
+        # pw_dists output from svgd-gradient computation
+        pw_dists_out = torch.sqrt(self._pw_dists_sq.clone().detach())
+        X = self._X.clone().detach()
+
+        if self.hessian_scaled:
+            # Hessian-scaled pw_dists
+            pw_dists_scaled = pw_dists_out
+            pw_dists = calc_pw_distances(X)
+        else:
+            # Euclidean Pairwise distances
+            pw_dists = pw_dists_out
+            pw_dists_scaled = None
+        return pw_dists, pw_dists_scaled
 
 def check(tsr, name):
     """Check a tensor for inf/nan/large values."""
