@@ -19,6 +19,6 @@ setup(
         'torch',
         'pyro-ppl',
         'matplotlib',
-        'bhmlib @ git+ssh://git@github.com/sashalambert/Bayesian_Hilbert_Maps.git',
+        'bhmlib @ git+ssh://git@github.com/sashalambert/Bayesian_Hilbert_Maps@devel',
     ],
 )
