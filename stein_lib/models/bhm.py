@@ -32,12 +32,14 @@ class BayesianHilbertMap:
             self,
             file_path=None,
             limits=((-10, 20,), (-25, 5)),
+            prior_dist=None,
     ):
 
         # Load trained Bayesian Hilbert Map
         params = torch.load(file_path)
         self.bhm = BHM2D_PYTORCH(torch_kernel_func=True, **params)
         self.limits = torch.tensor(limits)
+        self.prior_dist = prior_dist
 
     def log_prob(self, x):
         log_p = self.bhm.log_prob_vacancy(x)
@@ -47,6 +49,9 @@ class BayesianHilbertMap:
             log_p -= torch.exp( scale*(x[:, 0] - self.limits[0, 1]))
             log_p -= torch.exp(-scale*(x[:, 1] - self.limits[1, 0]))
             log_p -= torch.exp( scale*(x[:, 1] - self.limits[1, 1]))
+        if self.prior_dist is not None:
+            scale = 0.01
+            log_p += scale * self.prior_dist.log_prob(x)
         return log_p
 
     def grad_log_p(self, x):

@@ -53,3 +53,6 @@ class mixture_of_gaussians:
             x_,
         )[0]
         return dlog_p
+
+    def sample(self, shape):
+        return self.dist.rsample(shape)
