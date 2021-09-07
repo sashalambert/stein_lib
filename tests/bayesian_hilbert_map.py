@@ -70,7 +70,8 @@ particles_0 = prior_dist.sample((num_particles,))
 # Load model
 import bhmlib
 bhm_path = Path(bhmlib.__path__[0]).resolve()
-model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter100.pt'
+# model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter100.pt'
+model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
 ax_limits = [[-10, 20],[-25, 5]]
 model = BayesianHilbertMap(model_file, ax_limits)
 
