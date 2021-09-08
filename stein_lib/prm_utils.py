@@ -82,11 +82,7 @@ def get_graph(
     if include_coll_pts:
         edge_coll_pts = torch.cat(edge_coll_pts, dim=0) # for debugging
 
-    #edge_lengths = pw_dists[node_inds]
-    # inefficient but first attempt TODO: vectorize
-    edge_lengths = torch.empty(size=(len(node_inds),2)) 
-    for i, idx in enumerate(node_inds):
-        edge_lengths[i] = pw_dists[idx[0],idx[1]]
+    edge_lengths = pw_dists[node_inds[:, 0], node_inds[:, 1]]
 
     if not include_coll_pts:
         edge_coll_pts = None
