@@ -29,7 +29,7 @@ class RBFConf(BaseKernelConf):
     analytic_grad: bool = True
 
 @dataclass
-class RBF_AnisotropicConf(BaseKernelConf):
+class RBF_AnisotropicConf(RBFConf):
     _target_: str = "stein_lib.svgd.base_kernels.RBF_Anisotropic"
     hessian_scale: float = 1.0
     analytic_grad: bool = True
