@@ -281,6 +281,14 @@ class RBF_Anisotropic(RBF):
         X_M_Xt = X @ M @ X.t()
         X_M_Yt = X @ M @ Y.t()
         Y_M_Yt = Y @ M @ Y.t()
+        #
+        # if self.analytic_grad:
+        #     if bw is None:
+        #         # Choise of median-heuristic done in compute_bandwidth
+        #         h, pw_dists_sq = self.compute_bandwidth(X, Y)
+        #     else:
+        #         _, pw_dists_sq = self.compute_bandwidth(X, Y)
+        #         h = bw
 
         if self.analytic_grad:
             if self.median_heuristic:
@@ -293,8 +301,8 @@ class RBF_Anisotropic(RBF):
             if bw is not None:
                 bandwidth = bw
 
-            K = (- pw_dists_sq / bandwidth).exp()
-            d_K_Xi = K.unsqueeze(2) * ( (X.unsqueeze(1) - Y) @ M ) * 2 / bandwidth
+            K = (- pw_dists_sq / h).exp()
+            d_K_Xi = K.unsqueeze(2) * ( (X.unsqueeze(1) - Y) @ M ) * 2 / h
         else:
             raise NotImplementedError
 
