@@ -49,12 +49,12 @@ class SVGD():
     ):
 
         self.verbose = verbose
-        self.kernel_base_type = kernel.__class__.__name__
+        self.kernel_base_type = kernel.__name__
         self.kernel_structure = kernel_structure
         self.ctrl_dim = control_dim
         self.repulsive_scaling = repulsive_scaling
 
-        self.base_kernel = kernel 
+        self.base_kernel = kernel(**kernel_params)
         self.kernel = self.get_kernel(**kernel_params)
         self.geom_metric_type = kernel_params['geom_metric_type']
         self.hessian_scaled = False
@@ -75,7 +75,6 @@ class SVGD():
         ]
         if self.kernel_base_type in hessian_scaled_kernels :
             self.hessian_scaled = True
-
 
         #TODO: check if this is semantically correct
         if self.kernel_base_type not in supported_base_kernels: 
@@ -267,7 +266,7 @@ class SVGD():
         """
 
         particle_history = []
-        particle_history.append(X.clone().cpu().numpy())
+        particle_history.append(X.detach().clone().cpu().numpy())
 
         dts = []
         X = torch.autograd.Variable(X, requires_grad=True)
