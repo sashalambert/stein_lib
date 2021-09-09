@@ -295,11 +295,11 @@ class RBF_Anisotropic(RBF):
                 bandwidth, pw_dists_sq = self.compute_bandwidth(X, Y)
             else:
                 # bandwidth = self.hessian_scale * X.shape[1]
-                bandwidth = self.hessian_scale
+                h = self.hessian_scale
                 pw_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
 
             if bw is not None:
-                bandwidth = bw
+                h = bw
 
             K = (- pw_dists_sq / h).exp()
             d_K_Xi = K.unsqueeze(2) * ( (X.unsqueeze(1) - Y) @ M ) * 2 / h
