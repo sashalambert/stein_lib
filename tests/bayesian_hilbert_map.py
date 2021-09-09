@@ -29,7 +29,8 @@ from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
 from stein_lib.utils import create_movie_2D, plot_graph_2D
 from stein_lib.prm_utils import get_graph
-
+from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
+from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
@@ -75,52 +76,57 @@ model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
 ax_limits = [[-10, 20],[-25, 5]]
 model = BayesianHilbertMap(model_file, ax_limits)
 
-#================== SVGD ===========================
 particles = particles_0.clone().cpu().numpy()
 particles = torch.from_numpy(particles)
 
-# kernel_base_type = 'RBF'
-# # optimizer_type = 'SGD'
-# optimizer_type = 'Adam'
-# step_size = 1.
-# svgd = SVGD(
-#     kernel_base_type=kernel_base_type,
-#     kernel_structure=None,
+#================== Kernel ===========================
+
+# kernel = RBF(
+#     hessian_scale=1.0,
+#     analytic_grad=True,
 #     median_heuristic=False,
-#     repulsive_scaling=1.,
-#     geom_metric_type=None,
-#     verbose=True,
-#     bandwidth=5.,
+#     bandwidth=5.0,
 # )
 
-kernel_base_type = 'RBF_Anisotropic'
-# optimizer_type = 'SGD'
-optimizer_type = 'Adam'
-step_size = 0.25
-# step_size = 0.
-svgd = SVGD(
-    kernel_base_type=kernel_base_type,
-    kernel_structure=None,
+kernel = RBF_Anisotropic(
+    hessian_scale=1.0,
+    analytic_grad=True,
     median_heuristic=False,
+    bandwidth=5.0,
+)
+
+#================== Optimizer ===========================
+
+# optimizer = torch.optim.SGD([particles], lr=1.)
+
+optimizer = torch.optim.Adam([particles], lr=0.25)
+
+# optimizer = torch.optim.LBFGS(
+#    [particles],
+#    lr=0.1,
+#    max_iter=100,
+#    # max_eval=20 * 1.25,
+#    tolerance_change=1e-9,
+#    history_size=25,
+#    line_search_fn=None, #'strong_wolfe'
+# )
+
+# optimizer = FullBatchLBFGS(
+#    [particles],
+#    lr=0.1,
+#    history_size=25,
+#    line_search='None', #'Wolfe'
+# )
+
+#================== SVGD ===========================
+
+svgd = SVGD(
+    kernel=kernel,
+    kernel_structure=None,
     repulsive_scaling=1.,
     geom_metric_type='fisher',
     verbose=True,
-    bandwidth=5.,
 )
-
-
-# kernel_base_type = 'RBF_Anisotropic'
-# optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
-# step_size = 0.1
-# svgd = SVGD(
-#     kernel_base_type=kernel_base_type,
-#     kernel_structure=None,
-#     median_heuristic=False,
-#     repulsive_scaling=1.,
-#     geom_metric_type='fisher',
-#     verbose=True,
-#     bandwidth=5.,
-# )
 
 ## Optimize
 (particles,
@@ -130,21 +136,20 @@ svgd = SVGD(
     particles,
     model,
     iters,
-    step_size,
     # use_analytic_grads=True,
     use_analytic_grads=False,
-    optimizer_type=optimizer_type,
+    optimizer=optimizer,
 )
 
 print("\nMean Est.: ", particles.mean(0))
 print("Std Est.: ", particles.std(0))
 
-#=============================================
+#================== Graph ===========================
 
-# Construct Graph
 (nodes,
  edge_lengths,
  edge_vals,
+ edge_coll_binary,
  edge_coll_num_pts,
  edge_coll_pts,
  params) = get_graph(
@@ -157,6 +162,8 @@ print("Std Est.: ", particles.std(0))
     include_coll_pts=True,  # For debugging, visualization
 )
 
+#================== Visualization ===========================
+
 # Plot Graph
 plot_graph_2D(
     particles.detach(),
@@ -167,10 +174,9 @@ plot_graph_2D(
     # edge_coll_pts=edge_coll_pts,
     ax_limits=ax_limits,
     to_numpy=True,
-    save_path='./graph_svgd_{}_bhm_intel_np_{}_eps_{}.png'.format(
-        kernel_base_type,
+    save_path='./graph_svgd_{}_bhm_intel_np_{}.png'.format(
+        kernel.__class__.__name__,
         num_particles,
-        step_size,
     ),
 )
 

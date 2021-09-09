@@ -24,17 +24,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import torch
 import numpy as np
 from time import time
-from .base_kernels import (
-    RBF,
-    IMQ,
-    RBF_Anisotropic,
-    Linear,
-)
 
 from .composite_kernels import (
     iid,
 )
-from .LBFGS import FullBatchLBFGS, LBFGS
+from .LBFGS import FullBatchLBFGS
 from ..utils import get_jacobian, calc_pw_distances, calc_scaled_pw_distances
 from stein_lib.models.double_banana_analytic import doubleBanana_analytic
 
@@ -281,30 +275,6 @@ class SVGD():
         # reset optimizer params to empty and add particles as target parameters
         optimizer.param_groups[0]['params'] = []
         optimizer.param_groups[0]['params'].append(X)
-
-#        if optimizer_type == 'SGD':
-#            optimizer = torch.optim.SGD([X], lr=step_size)
-#        elif optimizer_type == 'Adam':
-#            optimizer = torch.optim.Adam([X], lr=step_size)
-#        elif optimizer_type == 'LBFGS':
-#            optimizer = torch.optim.LBFGS(
-#                [X],
-#                lr=step_size,
-#                max_iter=100,
-#                # max_eval=20 * 1.25,
-#                tolerance_change=1e-9,
-#                history_size=25,
-#                line_search_fn=None, #'strong_wolfe'
-#            )
-#        elif optimizer_type == 'FullBatchLBFGS':
-#            optimizer = FullBatchLBFGS(
-#                [X],
-#                lr=step_size,
-#                history_size=25,
-#                line_search='None', #'Wolfe'
-#            )
-#        else:
-#            raise NotImplementedError
 
         # Optimizer type
         def closure():
