@@ -185,14 +185,12 @@ plot_graph_2D(
 #     p_hist,
 #     model.log_prob,
 #     to_numpy=True,
-#     save_path='./svgd_{}_bhm_intel_np_{}_eps_{}.mp4'.format(
-#         kernel_base_type,
+#     save_path='./svgd_{}_bhm_intel_np_{}.mp4'.format(
+#         kernel.__class__.__name__,
 #         num_particles,
-#         step_size,
 #     ),
 #     ax_limits=ax_limits,
 #     opt='SVGD',
-#     kernel_base_type=kernel_base_type,
+#     kernel_base_type=kernel.__class__.__name__,
 #     num_particles=num_particles,
-#     eps=step_size,
 # )

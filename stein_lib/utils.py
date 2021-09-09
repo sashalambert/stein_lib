@@ -159,18 +159,17 @@ def create_movie_2D(
         kernel_base_type=None,
         opt=None,
         num_particles=None,
-        eps=None,
 ):
 
     k_type = kernel_base_type,
     if kernel_base_type == 'RBF_Anisotropic':
         k_type = 'RBF_H'
 
-    case_name = '{}-{} (np = {}, eps = {})'.format(
+    # case_name = '{}-{} (np = {}, eps = {})'.format(
+    case_name = '{}-{} (np = {})'.format(
         opt,
         k_type,
         num_particles,
-        eps,
     )
 
     fig = plt.figure(figsize=(5,5))

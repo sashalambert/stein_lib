@@ -49,12 +49,12 @@ class SVGD():
     ):
 
         self.verbose = verbose
-        self.kernel_base_type = kernel.__name__
+        self.kernel_base_type = kernel.__class__.__name__
         self.kernel_structure = kernel_structure
         self.ctrl_dim = control_dim
         self.repulsive_scaling = repulsive_scaling
 
-        self.base_kernel = kernel(**kernel_params)
+        self.base_kernel = kernel
         self.kernel = self.get_kernel(**kernel_params)
         self.geom_metric_type = kernel_params['geom_metric_type']
         self.hessian_scaled = False
