@@ -92,7 +92,7 @@ kernel = RBF_Anisotropic(
     hessian_scale=1.0,
     analytic_grad=True,
     median_heuristic=False,
-    bandwidth=5.0,
+    bandwidth=1.0,
 )
 
 #================== Optimizer ===========================

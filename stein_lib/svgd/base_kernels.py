@@ -77,47 +77,44 @@ class RBF(BaseKernel):
         self,
         bandwidth=-1,
         analytic_grad=True,
+        median_heuristic=False,
         **kwargs,
     ):
         super().__init__(
             analytic_grad,
         )
-        self.ell = bandwidth
+        self.bandwidth = bandwidth
+        self.median_heuristic = median_heuristic
         self.analytic_grad = analytic_grad
 
     def compute_bandwidth(
             self,
-            X, Y
+            pairwise_dists_sq,
     ):
         """
             Older version.
         """
 
-        XX = X.matmul(X.t())
-        XY = X.matmul(Y.t())
-        YY = Y.matmul(Y.t())
-
-        pairwise_dists_sq = -2 * XY + XX.diag().unsqueeze(1) + YY.diag().unsqueeze(0)
-
-        if self.ell < 0:  # use median trick
+        if self.median_heuristic:
             try:
                 h = torch.median(pairwise_dists_sq).detach()
             except Exception as e:
                 print(pairwise_dists_sq)
                 print(e)
         else:
-            h = self.ell**2
+            h = self.bandwidth**2
 
-        h = h / np.log(X.shape[0])
+        N = pairwise_dists_sq.shape[0]
+        h = h / np.log(N)
 
         # Clamp bandwidth
         tol = 1e-5
-        if isinstance(h, torch.Tensor):
-            h = torch.clamp(h, min=tol)
-        else:
-            h = np.clip(h, a_min=tol, a_max=None)
+        # if isinstance(h, torch.Tensor):
+        #     h = torch.clamp(h, min=tol)
+        # else:
+        #     h = np.clip(h, a_min=tol, a_max=None)
 
-        return h, pairwise_dists_sq
+        return h
 
     def eval(
             self,
@@ -130,11 +127,16 @@ class RBF(BaseKernel):
 
         assert X.shape == Y.shape
 
+        XX = X.matmul(X.t())
+        XY = X.matmul(Y.t())
+        YY = Y.matmul(Y.t())
+
+        pw_dists_sq = -2 * XY + XX.diag().unsqueeze(1) + YY.diag().unsqueeze(0)
+
         if self.analytic_grad:
             if bw is None:
-                h, pw_dists_sq = self.compute_bandwidth(X, Y)
+                h = self.compute_bandwidth(pw_dists_sq)
             else:
-                _, pw_dists_sq = self.compute_bandwidth(X, Y)
                 h = bw
 
             K = (- pw_dists_sq / h).exp()
@@ -249,15 +251,17 @@ class RBF_Anisotropic(RBF):
     def __init__(
         self,
         hessian_scale=1,
-        analytic_grad=True,
         median_heuristic=False,
+        bandwidth=-1,
+        analytic_grad=True,
         **kwargs,
     ):
         super().__init__(
-            analytic_grad,
+            bandwidth=bandwidth,
+            analytic_grad=analytic_grad,
+            median_heuristic=median_heuristic
         )
         self.hessian_scale = hessian_scale
-        self.median_heuristic = median_heuristic
 
     def eval(
         self,
@@ -281,24 +285,13 @@ class RBF_Anisotropic(RBF):
         X_M_Xt = X @ M @ X.t()
         X_M_Yt = X @ M @ Y.t()
         Y_M_Yt = Y @ M @ Y.t()
-        #
-        # if self.analytic_grad:
-        #     if bw is None:
-        #         # Choise of median-heuristic done in compute_bandwidth
-        #         h, pw_dists_sq = self.compute_bandwidth(X, Y)
-        #     else:
-        #         _, pw_dists_sq = self.compute_bandwidth(X, Y)
-        #         h = bw
+
+        pw_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
 
         if self.analytic_grad:
-            if self.median_heuristic:
-                bandwidth, pw_dists_sq = self.compute_bandwidth(X, Y)
+            if bw is None:
+                h = self.compute_bandwidth(pw_dists_sq)
             else:
-                # bandwidth = self.hessian_scale * X.shape[1]
-                h = self.hessian_scale
-                pw_dists_sq = -2 * X_M_Yt + X_M_Xt.diag().unsqueeze(1) + Y_M_Yt.diag().unsqueeze(0)
-
-            if bw is not None:
                 h = bw
 
             K = (- pw_dists_sq / h).exp()
