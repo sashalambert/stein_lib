@@ -61,7 +61,7 @@ def get_graph(
         start_pt = particles[node_pair[0]]
         end_pt = particles[node_pair[1]]
         edge_len = pw_dists[node_pair[0], node_pair[1]]
-        num_pts = torch.floor(edge_len / collision_res).int()
+        num_pts = torch.floor(edge_len / collision_res).int() + 2  # includes endpoints
 
         coll_pts = []
         for i in range(dim):
