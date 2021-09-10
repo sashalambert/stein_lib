@@ -68,7 +68,7 @@ def get_graph(
             coll_pts.append(torch.linspace(start_pt[i], end_pt[i], num_pts))  # includes endpoints
 
         coll_pts = torch.stack(coll_pts, dim=1)
-        edge_cost = torch.exp(1 - model.log_prob(coll_pts)).sum()
+        edge_cost = torch.exp(1 - model.log_prob(coll_pts)).max()
         edge_coll_vals.append(edge_cost)
         edge_num_pts.append(num_pts)
         if include_coll_pts:
