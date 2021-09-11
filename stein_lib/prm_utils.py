@@ -26,6 +26,18 @@ import torch
 import numpy as np
 import pickle
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def get_graph(
         particles,
         pw_dists,
@@ -74,18 +86,22 @@ def get_graph(
         if include_coll_pts:
             edge_coll_pts.append(coll_pts) # for debugging
 
-        
-    edge_coll_vals = torch.stack(edge_coll_vals, dim=0)
-    edge_coll_binary = edge_coll_vals > collision_thresh #TODO: verify this is correct
-    edge_coll_num_pts = torch.stack(edge_num_pts)
-
-    if include_coll_pts:
-        edge_coll_pts = torch.cat(edge_coll_pts, dim=0) # for debugging
-
-    edge_lengths = pw_dists[node_inds[:, 0], node_inds[:, 1]]
-
-    if not include_coll_pts:
-        edge_coll_pts = None
+    if not edge_coll_vals:
+        print(f"{bcolors.WARNING}Warning: empty graph! Consider changing connect_rad or collision_res.{bcolors.ENDC}")
+        edge_lengths = np.empty((0,))
+        edge_coll_vals = np.empty((0,))
+        edge_coll_binary = np.empty((0,))
+        edge_coll_num_pts = np.empty((0,))
+        edge_coll_pts = np.empty((0,))
+    else:
+        edge_coll_vals = torch.stack(edge_coll_vals, dim=0)
+        edge_coll_binary = edge_coll_vals > collision_thresh
+        edge_coll_num_pts = torch.stack(edge_num_pts)
+        edge_lengths = pw_dists[node_inds[:, 0], node_inds[:, 1]]
+        if include_coll_pts:
+            edge_coll_pts = torch.cat(edge_coll_pts, dim=0) # for debugging
+        else:
+            edge_coll_pts = None
 
     params = {
         'collision_res': collision_res,

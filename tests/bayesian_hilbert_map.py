@@ -35,7 +35,8 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
 # num_particles = 100
-num_particles = 250
+# num_particles = 250
+num_particles = 1
 # iters = 3000
 # iters = 200
 iters = 100
