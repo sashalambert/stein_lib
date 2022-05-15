@@ -140,6 +140,7 @@ class RBF_map:
         plt.figure()
         plt.imshow(out)
         plt.gca().invert_yaxis()
+        plt.colorbar()
         plt.show()
         if save_dir is not None:
             plt.savefig(osp.join(save_dir, filename))

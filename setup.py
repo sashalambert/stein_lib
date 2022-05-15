@@ -13,7 +13,7 @@ setup(
     packages=find_packages(exclude=('results*', '*results', 'tests')),
     description='Stein Variational Inference Library',
     url='https://github.com/sashalambert/stein_lib.git',
-    author='Sasha Alexander Lambert',
+    author='Alexander Lambert',
     install_requires=[
         'numpy',
         'torch',

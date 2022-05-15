@@ -196,6 +196,8 @@ def create_movie_2D(
     plt.contourf(X, Y, Z, 10)
     xlim = ax_limits[0]
     ylim = ax_limits[1]
+    # xlim = [ax_limits[0][0] - 10, ax_limits[0][1] + 10]
+    # ylim = [ax_limits[1][0] - 10, ax_limits[1][1] + 10]
     p_start = particle_hist[0]
     particles = plt.plot(p_start[:, 0], p_start[:, 1], 'ro', markersize=3)
     n_iter = len(particle_hist)
@@ -209,6 +211,8 @@ def create_movie_2D(
 
     def _animate(i):
         # ax.set_title(str(i) + '$ ^{th}$ iteration')
+
+
         ax.set_title(case_name + '\n' + str(i) + '$ ^{th}$ iteration')
         pos = particle_hist[i]
         particles[0].set_xdata(pos[:, 0])

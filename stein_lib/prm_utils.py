@@ -84,7 +84,7 @@ def get_graph(
         edge_coll_vals.append(edge_cost)
         edge_num_pts.append(num_pts)
         if include_coll_pts:
-            edge_coll_pts.append(coll_pts) # for debugging
+            edge_coll_pts.append(coll_pts.reshape(-1, dim)) # for debugging
 
     if not edge_coll_vals:
         print(f"{bcolors.WARNING}Warning: empty graph! Consider changing connect_rad or collision_res.{bcolors.ENDC}")
@@ -99,7 +99,7 @@ def get_graph(
         edge_coll_num_pts = torch.stack(edge_num_pts)
         edge_lengths = pw_dists[node_inds[:, 0], node_inds[:, 1]]
         if include_coll_pts:
-            edge_coll_pts = torch.cat(edge_coll_pts, dim=0) # for debugging
+            edge_coll_num_pts = torch.stack(edge_num_pts)
         else:
             edge_coll_pts = None
 

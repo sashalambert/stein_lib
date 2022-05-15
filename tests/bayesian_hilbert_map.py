@@ -35,8 +35,8 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
 # num_particles = 100
-# num_particles = 250
-num_particles = 1
+num_particles = 250
+# num_particles = 1
 # iters = 3000
 # iters = 200
 iters = 100
@@ -66,16 +66,17 @@ torch.manual_seed(1)
 prior_dist = Uniform(low=torch.tensor([-10., -25.]),
                     high=torch.tensor([20., 5.]))
 
-
 particles_0 = prior_dist.sample((num_particles,))
 
 # Load model
 import bhmlib
 bhm_path = Path(bhmlib.__path__[0]).resolve()
 # model_file = bhm_path / 'Outputs' / 'saved_models' / 'bhm_intel_res0.25_iter100.pt'
-model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
+# model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
+model_file = '/tmp/bhm_intel_res0.25_iter900.pt'
 ax_limits = [[-10, 20],[-25, 5]]
 model = BayesianHilbertMap(model_file, ax_limits)
+
 
 particles = particles_0.clone().cpu().numpy()
 particles = torch.from_numpy(particles)
@@ -147,51 +148,51 @@ print("Std Est.: ", particles.std(0))
 
 #================== Graph ===========================
 
-(nodes,
- edge_lengths,
- edge_vals,
- edge_coll_binary,
- edge_coll_num_pts,
- edge_coll_pts,
- params) = get_graph(
-    particles.detach(),
-    pw_dists,
-    model,
-    collision_thresh=5.,
-    collision_res=0.25,
-    connect_radius=5.,
-    include_coll_pts=True,  # For debugging, visualization
-)
+# (nodes,
+#  edge_lengths,
+#  edge_vals,
+#  edge_coll_binary,
+#  edge_coll_num_pts,
+#  edge_coll_pts,
+#  params) = get_graph(
+#     particles.detach(),
+#     pw_dists,
+#     model,
+#     collision_thresh=5.,
+#     collision_res=0.25,
+#     connect_radius=5.,
+#     include_coll_pts=True,  # For debugging, visualization
+# )
 
 #================== Visualization ===========================
 
 # Plot Graph
-plot_graph_2D(
-    particles.detach(),
-    nodes,
-    model.log_prob,
-    edge_vals=edge_vals,
-    edge_coll_thresh=50.,
-    # edge_coll_pts=edge_coll_pts,
-    ax_limits=ax_limits,
-    to_numpy=True,
-    save_path='./graph_svgd_{}_bhm_intel_np_{}.png'.format(
-        kernel.__class__.__name__,
-        num_particles,
-    ),
-)
-
-# # Make movie
-# create_movie_2D(
-#     p_hist,
+# plot_graph_2D(
+#     particles.detach(),
+#     nodes,
 #     model.log_prob,
+#     edge_vals=edge_vals,
+#     edge_coll_thresh=50.,
+#     # edge_coll_pts=edge_coll_pts,
+#     ax_limits=ax_limits,
 #     to_numpy=True,
-#     save_path='./svgd_{}_bhm_intel_np_{}.mp4'.format(
+#     save_path='./graph_svgd_{}_bhm_intel_np_{}.png'.format(
 #         kernel.__class__.__name__,
 #         num_particles,
 #     ),
-#     ax_limits=ax_limits,
-#     opt='SVGD',
-#     kernel_base_type=kernel.__class__.__name__,
-#     num_particles=num_particles,
 # )
+
+# Make movie
+create_movie_2D(
+    p_hist,
+    model.log_prob,
+    to_numpy=True,
+    save_path='./svgd_{}_bhm_intel_np_{}.mp4'.format(
+        kernel.__class__.__name__,
+        num_particles,
+    ),
+    ax_limits=ax_limits,
+    opt='SVGD',
+    kernel_base_type=kernel.__class__.__name__,
+    num_particles=num_particles,
+)
