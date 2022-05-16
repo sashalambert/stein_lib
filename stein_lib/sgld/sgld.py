@@ -5,7 +5,9 @@ Ali Siahkoohi
 
 
 import torch
+import numpy as np
 from .precondSGLD import pSGLD
+from tqdm import tqdm
 import copy
 
 class LangevinDynamics(object):
@@ -26,8 +28,7 @@ class LangevinDynamics(object):
         self.lr_decay()
         self.optim.zero_grad()
         # loss = self.func(self.x)
-        print(self.x)
-        loss = -1. * self.func.log_prob(self.x.unsqueeze(0))
+        loss = -1. * self.func.log_prob(self.x).sum()
         loss.backward()
         self.optim.step()
         self.counter += 1
@@ -45,6 +46,18 @@ class LangevinDynamics(object):
         for param_group in self.optim.param_groups:
             param_group['lr'] = self.lr_fn(self.counter)
 
+    def apply(self):
+        hist_samples = []
+        loss_log = []
+        for j in tqdm(range(int(self.max_itr))):
+            est, loss = self.sample()
+            loss_log.append(loss)
+            # if j % 10 == 0:
+            hist_samples.append(est.cpu().numpy())
+        particles = est
+        p_hist = np.array(hist_samples)
+        return (particles, p_hist)
+
 
 class MetropolisAdjustedLangevin(object):
     def __init__(self, x, func, lr=1e-2, lr_final=1e-4, max_itr=1e4,
@@ -60,7 +73,8 @@ class MetropolisAdjustedLangevin(object):
 
         self.loss = [torch.zeros([1], device=x.device),
                      torch.zeros([1], device=x.device)]
-        self.loss[0] = func(self.x[0])
+        # self.loss[0] = func(self.x[0])
+        self.loss[0] = -1. * func.log_prob(self.x[0]).sum()
         self.loss[1].data = self.loss[0].data
 
         self.grad = [torch.zeros(x.shape, device=x.device),
@@ -83,7 +97,8 @@ class MetropolisAdjustedLangevin(object):
         while not accepted:
             self.x[1].grad = self.grad[1].data
             self.P = self.optim.step()
-            self.loss[1] = self.func(self.x[1])
+            # self.loss[1] = self.func(self.x[1])
+            self.loss[1] = -1. * self.func.log_prob(self.x[1]).sum()
             self.grad[1].data = torch.autograd.grad(
                 self.loss[1], [self.x[1]], create_graph=False)[0].data
 
@@ -119,3 +134,15 @@ class MetropolisAdjustedLangevin(object):
     def lr_decay(self):
         for param_group in self.optim.param_groups:
             param_group['lr'] = self.lr_fn(self.counter)
+
+    def apply(self):
+        hist_samples = []
+        loss_log = []
+        for j in tqdm(range(int(self.max_itr))):
+            est, loss = self.sample()
+            loss_log.append(loss)
+            # if j % 10 == 0:
+            hist_samples.append(est.cpu().numpy())
+        particles = est
+        p_hist = np.array(hist_samples)
+        return (particles, p_hist)

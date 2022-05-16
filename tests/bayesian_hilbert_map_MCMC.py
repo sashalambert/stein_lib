@@ -25,7 +25,7 @@ import torch
 from torch.distributions import Normal, Uniform
 import numpy as np
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from stein_lib.sgld.sgld import LangevinDynamics
+from stein_lib.sgld.sgld import LangevinDynamics, MetropolisAdjustedLangevin
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
 from stein_lib.utils import create_movie_2D, plot_graph_2D
@@ -33,6 +33,8 @@ from stein_lib.prm_utils import get_graph
 from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
 from tqdm import tqdm
+from pyro.infer.mcmc import NUTS, MCMC
+import pyro
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -113,9 +115,12 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 #     optimizer=optimizer,
 # )
 
-x = torch.randn([2], requires_grad=True)
-# max_itr = int(1e5)
-max_itr = int(1e2)
+#================== SGLD ===========================
+
+# x = torch.randn([5, 2], requires_grad=True)
+x = particles
+x.requires_grad = True
+max_itr = int(500)
 langevin_dynamics = LangevinDynamics(
     x,
     model,
@@ -123,20 +128,28 @@ langevin_dynamics = LangevinDynamics(
     lr_final=1e-2,
     max_itr=max_itr,
 )
+# langevin_dynamics = MetropolisAdjustedLangevin(
+#     x,
+#     model,
+#     lr=0.1,
+#     lr_final=1e-2,
+#     max_itr=max_itr,
+# )
 
-hist_samples = []
-loss_log = []
-for j in tqdm(range(max_itr)):
-    est, loss = langevin_dynamics.sample()
-    loss_log.append(loss)
-    # if j % 10 == 0:
-    hist_samples.append(est.unsqueeze(0).cpu().numpy())
+particles, p_hist = langevin_dynamics.apply()
 
-# p_hist = np.array(hist_samples)[500:]
-p_hist = np.array(hist_samples)
+#================== HMC ===========================
 
-# print("\nMean Est.: ", x.mean(0))
-# print("Std Est.: ", x.std(0))
+# #TODO: modify BHM model to match
+# def pyro_model(data):
+#     y = pyro.sample('y', model(), obs=data)
+#     return y
+#
+# nuts_kernel = NUTS(model.log_prob, adapt_step_size=True)
+# mcmc = MCMC(nuts_kernel, num_samples=500, warmup_steps=300)
+# mcmc.run(particles)
+# particles = mcmc.get_samples()
+# particles = particles.unsqueeze()
 
 #================== Graph ===========================
 

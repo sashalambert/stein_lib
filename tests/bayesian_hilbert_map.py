@@ -79,7 +79,7 @@ model = BayesianHilbertMap(model_file, ax_limits)
 
 
 particles = particles_0.clone().cpu().numpy()
-particles = torch.from_numpy(particles).cuda()
+particles = torch.from_numpy(particles)
 
 
 #================== Kernel ===========================
@@ -89,6 +89,13 @@ particles = torch.from_numpy(particles).cuda()
 #     analytic_grad=True,
 #     median_heuristic=False,
 #     bandwidth=5.0,
+# )
+
+# kernel = RBF(
+#     hessian_scale=1.0,
+#     analytic_grad=True,
+#     median_heuristic=False,
+#     bandwidth=1.0,
 # )
 
 kernel = RBF_Anisotropic(
