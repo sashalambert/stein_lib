@@ -31,11 +31,18 @@ from stein_lib.utils import create_movie_2D, plot_graph_2D
 from stein_lib.prm_utils import get_graph
 from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
-torch.set_default_tensor_type(torch.DoubleTensor)
+
+if not torch.cuda.is_available():
+    device = torch.device('cpu')
+    torch.set_default_tensor_type(torch.DoubleTensor)
+else:
+    device = torch.device('cuda')
+    torch.set_default_tensor_type(torch.cuda.DoubleTensor)
 
 ###### Params ######
 # num_particles = 100
 num_particles = 250
+# num_particles = 2000
 # num_particles = 1
 # iters = 3000
 # iters = 200
@@ -63,8 +70,8 @@ torch.manual_seed(1)
 # )
 
 ## Uniform distribution
-prior_dist = Uniform(low=torch.tensor([-10., -25.]),
-                    high=torch.tensor([20., 5.]))
+prior_dist = Uniform(low=torch.tensor([-10., -25.]).to(device),
+                    high=torch.tensor([20., 5.]).to(device))
 
 particles_0 = prior_dist.sample((num_particles,))
 
@@ -75,11 +82,12 @@ bhm_path = Path(bhmlib.__path__[0]).resolve()
 # model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
 model_file = '/tmp/bhm_intel_res0.25_iter900.pt'
 ax_limits = [[-10, 20], [-25, 5]]
-model = BayesianHilbertMap(model_file, ax_limits)
+model = BayesianHilbertMap(model_file, ax_limits, device)
 
 
-particles = particles_0.clone().cpu().numpy()
-particles = torch.from_numpy(particles)
+# particles = particles_0.clone().cpu().numpy()
+# particles = torch.from_numpy(particles)
+particles = particles_0.clone().detach()
 
 
 #================== Kernel ===========================
@@ -138,6 +146,8 @@ svgd = SVGD(
     verbose=True,
 )
 
+from time import time
+t_start = time()
 ## Optimize
 (particles,
  p_hist,
@@ -151,6 +161,7 @@ svgd = SVGD(
     optimizer=optimizer,
 )
 
+print('\nOptimization time: ', time() - t_start)
 print("\nMean Est.: ", particles.mean(0))
 print("Std Est.: ", particles.std(0))
 
@@ -190,10 +201,12 @@ print("Std Est.: ", particles.std(0))
 #     ),
 # )
 
+particles = particles.cpu()
+
 # Make movie
 create_movie_2D(
     p_hist,
-    model.log_prob,
+    model,
     to_numpy=True,
     save_path='./svgd_{}_bhm_intel_np_{}.mp4'.format(
         kernel.__class__.__name__,

@@ -152,7 +152,7 @@ def plot_graph_2D(
 
 def create_movie_2D(
         particle_hist,
-        log_prob,
+        model,
         save_path="/tmp/stein_movie.mp4",
         ax_limits=[[-4, 4],[4, 4]],
         to_numpy=False,
@@ -184,12 +184,13 @@ def create_movie_2D(
                 (np.ndarray.flatten(X), np.ndarray.flatten(Y)),
             )
     if to_numpy:
-        grid = torch.from_numpy(grid)
-        z = log_prob(grid.t()).cpu().numpy()
+        # grid = torch.from_numpy(grid)
+        grid = torch.from_numpy(grid).to(model.device)
+        z = model.log_prob(grid.t()).cpu().numpy()
         Z = np.exp(z).reshape(ngrid, ngrid)
     else:
         Z = np.exp(
-            log_prob(grid),
+            model.log_prob(grid),
         ).reshape(ngrid, ngrid)
 
     plt.contourf(X, Y, Z, 10)

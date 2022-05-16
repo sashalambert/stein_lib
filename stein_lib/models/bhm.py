@@ -25,6 +25,7 @@ import numpy as np
 import torch
 from pathlib import Path
 from bhmlib.BHM.pytorch.bhmtorch_cpu import BHM2D_PYTORCH
+from bhmlib.BHM.pytorch.bhmtorch_cuda import BHM2D_PYTORCH_CUDA
 
 
 class BayesianHilbertMap:
@@ -32,12 +33,17 @@ class BayesianHilbertMap:
             self,
             file_path=None,
             limits=((-10, 20,), (-25, 5)),
+            device=torch.device('cpu')
     ):
 
+        self.device = device
         # Load trained Bayesian Hilbert Map
         params = torch.load(file_path)
+        for k, v in params.items():
+            if isinstance(v, torch.Tensor):
+                params[k] = v.to(device)
         self.bhm = BHM2D_PYTORCH(torch_kernel_func=True, **params)
-        self.limits = torch.tensor(limits)
+        self.limits = torch.tensor(limits).to(device)
 
     def log_prob(self, x):
         log_p = self.bhm.log_prob_vacancy(x)
