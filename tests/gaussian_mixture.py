@@ -27,6 +27,7 @@ from stein_lib.svgd.svgd import SVGD
 
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
 from stein_lib.utils import create_movie_2D
+from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -130,11 +131,19 @@ for eps in eps_list:
 
     particles = particles_0.clone().cpu().numpy()
     particles = torch.from_numpy(particles)
-    kernel_base_type = 'RBF_Anisotropic' # 'RBF', 'IMQ'
-    optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
+    # kernel_base_type = 'RBF_Anisotropic' # 'RBF', 'IMQ'
+    # optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
+
+    kernel = RBF_Anisotropic(
+        hessian_scale=1.0,
+        analytic_grad=True,
+        median_heuristic=False,
+        bandwidth=1.0,
+    )
+    optimizer = torch.optim.Adam([particles], lr=0.1)
 
     svgd = SVGD(
-        kernel_base_type=kernel_base_type,
+        kernel=kernel,
         kernel_structure=None,
         median_heuristic=False,
         repulsive_scaling=2.,
@@ -142,14 +151,18 @@ for eps in eps_list:
         verbose=True,
     )
 
-    particles, p_hist, pw_dists_sq = svgd.apply(
-                            particles,
-                            model,
-                            iters,
-                            eps,
-                            use_analytic_grads=False,
-                            optimizer_type=optimizer_type,
-                        )
+    (particles,
+     p_hist,
+     pw_dists,
+     pw_dists_scaled) = svgd.apply(
+        particles,
+        model,
+        iters,
+        # use_analytic_grads=True,
+        use_analytic_grads=False,
+        optimizer=optimizer,
+    )
+
 
     print("\nMean Est.: ", particles.mean(0))
     print("Std Est.: ", particles.std(0))
@@ -158,17 +171,16 @@ for eps in eps_list:
         p_hist,
         model.log_prob,
         to_numpy=True,
-        save_path='./svgd_{}_gaussian_mix_np_{}_eps_{}.mp4'.format(
-            kernel_base_type,
+        save_path='./svgd_{}_gaussian_mix_np_{}.mp4'.format(
+            kernel.__class__.__name__,
             num_particles,
-            eps,
         ),
         ax_limits=[[-5, 5],[-5, 5]],
         opt='SVGD',
-        kernel_base_type=kernel_base_type,
+        kernel_base_type=kernel.__class__.__name__,
         num_particles=num_particles,
-        eps=eps,
     )
+
 
     # ========= Matrix-valued SVGD ===================
 
