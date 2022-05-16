@@ -165,7 +165,6 @@ def create_movie_2D(
     if kernel_base_type == 'RBF_Anisotropic':
         k_type = 'RBF_H'
 
-    # case_name = '{}-{} (np = {}, eps = {})'.format(
     case_name = '{}-{} (np = {})'.format(
         opt,
         k_type,

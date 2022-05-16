@@ -23,14 +23,17 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import torch
 from torch.distributions import Normal, Uniform
+import numpy as np
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from stein_lib.svgd.svgd import SVGD
+from stein_lib.sgld.sgld import LangevinDynamics
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
 from stein_lib.utils import create_movie_2D, plot_graph_2D
 from stein_lib.prm_utils import get_graph
 from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
+from tqdm import tqdm
+
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 ###### Params ######
@@ -79,24 +82,7 @@ model = BayesianHilbertMap(model_file, ax_limits)
 
 
 particles = particles_0.clone().cpu().numpy()
-particles = torch.from_numpy(particles).cuda()
-
-
-#================== Kernel ===========================
-
-# kernel = RBF(
-#     hessian_scale=1.0,
-#     analytic_grad=True,
-#     median_heuristic=False,
-#     bandwidth=5.0,
-# )
-
-kernel = RBF_Anisotropic(
-    hessian_scale=1.0,
-    analytic_grad=True,
-    median_heuristic=False,
-    bandwidth=1.0,
-)
+particles = torch.from_numpy(particles)
 
 #================== Optimizer ===========================
 
@@ -104,48 +90,53 @@ kernel = RBF_Anisotropic(
 
 optimizer = torch.optim.Adam([particles], lr=0.25)
 
-# optimizer = torch.optim.LBFGS(
-#    [particles],
-#    lr=0.1,
-#    max_iter=100,
-#    # max_eval=20 * 1.25,
-#    tolerance_change=1e-9,
-#    history_size=25,
-#    line_search_fn=None, #'strong_wolfe'
-# )
-
-# optimizer = FullBatchLBFGS(
-#    [particles],
-#    lr=0.1,
-#    history_size=25,
-#    line_search='None', #'Wolfe'
-# )
-
 #================== SVGD ===========================
 
-svgd = SVGD(
-    kernel=kernel,
-    kernel_structure=None,
-    repulsive_scaling=1.,
-    geom_metric_type='fisher',
-    verbose=True,
-)
+# svgd = SVGD(
+#     kernel=kernel,
+#     kernel_structure=None,
+#     repulsive_scaling=1.,
+#     geom_metric_type='fisher',
+#     verbose=True,
+# )
+#
+# ## Optimize
+# (particles,
+#  p_hist,
+#  pw_dists,
+#  pw_dists_scaled) = svgd.apply(
+#     particles,
+#     model,
+#     iters,
+#     # use_analytic_grads=True,
+#     use_analytic_grads=False,
+#     optimizer=optimizer,
+# )
 
-## Optimize
-(particles,
- p_hist,
- pw_dists,
- pw_dists_scaled) = svgd.apply(
-    particles,
+x = torch.randn([2], requires_grad=True)
+# max_itr = int(1e5)
+max_itr = int(1e2)
+langevin_dynamics = LangevinDynamics(
+    x,
     model,
-    iters,
-    # use_analytic_grads=True,
-    use_analytic_grads=False,
-    optimizer=optimizer,
+    lr=0.1,
+    lr_final=1e-2,
+    max_itr=max_itr,
 )
 
-print("\nMean Est.: ", particles.mean(0))
-print("Std Est.: ", particles.std(0))
+hist_samples = []
+loss_log = []
+for j in tqdm(range(max_itr)):
+    est, loss = langevin_dynamics.sample()
+    loss_log.append(loss)
+    # if j % 10 == 0:
+    hist_samples.append(est.unsqueeze(0).cpu().numpy())
+
+# p_hist = np.array(hist_samples)[500:]
+p_hist = np.array(hist_samples)
+
+# print("\nMean Est.: ", x.mean(0))
+# print("Std Est.: ", x.std(0))
 
 #================== Graph ===========================
 
@@ -188,12 +179,11 @@ create_movie_2D(
     p_hist,
     model.log_prob,
     to_numpy=True,
-    save_path='./svgd_{}_bhm_intel_np_{}.mp4'.format(
-        kernel.__class__.__name__,
+    save_path='./sgld_bhm_intel_np_{}.mp4'.format(
         num_particles,
     ),
     ax_limits=ax_limits,
-    opt='SVGD',
-    kernel_base_type=kernel.__class__.__name__,
+    opt='SGLD',
+    kernel_base_type=None,
     num_particles=num_particles,
 )

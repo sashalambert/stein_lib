@@ -130,7 +130,7 @@ for eps in eps_list:
     #================== SVGD ===========================
 
     particles = particles_0.clone().cpu().numpy()
-    particles = torch.from_numpy(particles)
+    particles = torch.from_numpy(particles).cuda()
     # kernel_base_type = 'RBF_Anisotropic' # 'RBF', 'IMQ'
     # optimizer_type = 'LBFGS' # 'FullBatchLBFGS'
 
