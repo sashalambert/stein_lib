@@ -48,6 +48,7 @@ class LangevinDynamics(object):
     def apply(self, x, model, max_itr):
         hist_samples = []
         loss_log = []
+        x.requires_grad = True
         self.optim = pSGLD([x], self.lr, weight_decay=0.0)
         self.lr_fn = self.decay_fn(lr=self.lr, lr_final=self.lr_final, max_itr=max_itr)
         for j in tqdm(range(max_itr)):

@@ -125,7 +125,7 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 
 # x = torch.randn([5, 2], requires_grad=True)
 x = particles
-x.requires_grad = True
+# x.requires_grad = True
 max_itr = int(500)
 langevin_dynamics = LangevinDynamics(
     lr=0.1,
@@ -140,7 +140,6 @@ langevin_dynamics = LangevinDynamics(
 # )
 
 particles, p_hist = langevin_dynamics.apply(x, model, max_itr)
-
 #================== HMC ===========================
 
 # #TODO: modify BHM model to match
