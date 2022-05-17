@@ -11,8 +11,14 @@ from tqdm import tqdm
 import copy
 
 class LangevinDynamics(object):
-    def __init__(self, x, func, lr=1e-2, lr_final=1e-4, max_itr=1e4,
-                 device='cpu'):
+    def __init__(
+            self,
+            x,
+            func,
+            lr=1e-2,
+            lr_final=1e-4,
+            max_itr=1e4,
+    ):
         super(LangevinDynamics, self).__init__()
 
         self.x = x
@@ -60,8 +66,14 @@ class LangevinDynamics(object):
 
 
 class MetropolisAdjustedLangevin(object):
-    def __init__(self, x, func, lr=1e-2, lr_final=1e-4, max_itr=1e4,
-                 device='cpu'):
+    def __init__(
+            self,
+            x,
+            func,
+            lr=1e-2,
+            lr_final=1e-4,
+            max_itr=1e4,
+    ):
         super(MetropolisAdjustedLangevin, self).__init__()
 
         self.x = [

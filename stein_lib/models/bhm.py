@@ -25,7 +25,6 @@ import numpy as np
 import torch
 from pathlib import Path
 from bhmlib.BHM.pytorch.bhmtorch_cpu import BHM2D_PYTORCH
-from bhmlib.BHM.pytorch.bhmtorch_cuda import BHM2D_PYTORCH_CUDA
 
 
 class BayesianHilbertMap:
@@ -33,7 +32,7 @@ class BayesianHilbertMap:
             self,
             file_path=None,
             limits=((-10, 20,), (-25, 5)),
-            device=torch.device('cpu')
+            device=None,
     ):
 
         self.device = device
@@ -57,7 +56,6 @@ class BayesianHilbertMap:
 
     def grad_log_p(self, x):
         return self.bhm.grad_log_p_vacancy(x)
-
 
 if __name__ == '__main__':
 

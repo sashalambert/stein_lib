@@ -25,7 +25,7 @@ import torch
 from torch.distributions import Normal, Uniform
 import numpy as np
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from stein_lib.sgld.sgld import LangevinDynamics, MetropolisAdjustedLangevin
+from stein_lib.mcmc.sgld import LangevinDynamics, MetropolisAdjustedLangevin
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
 from stein_lib.utils import create_movie_2D, plot_graph_2D
@@ -36,7 +36,12 @@ from tqdm import tqdm
 from pyro.infer.mcmc import NUTS, MCMC
 import pyro
 
-torch.set_default_tensor_type(torch.DoubleTensor)
+if not torch.cuda.is_available():
+    device = torch.device('cpu')
+    torch.set_default_tensor_type(torch.DoubleTensor)
+else:
+    device = torch.device('cuda')
+    torch.set_default_tensor_type(torch.cuda.DoubleTensor)
 
 ###### Params ######
 # num_particles = 100
@@ -68,8 +73,8 @@ torch.manual_seed(1)
 # )
 
 ## Uniform distribution
-prior_dist = Uniform(low=torch.tensor([-10., -25.]),
-                    high=torch.tensor([20., 5.]))
+prior_dist = Uniform(low=torch.tensor([-10., -25.]).to(device),
+                    high=torch.tensor([20., 5.]).to(device))
 
 particles_0 = prior_dist.sample((num_particles,))
 
@@ -80,11 +85,12 @@ bhm_path = Path(bhmlib.__path__[0]).resolve()
 # model_file = '/tmp/bhm_intel_res0.25_iter100.pt'
 model_file = '/tmp/bhm_intel_res0.25_iter900.pt'
 ax_limits = [[-10, 20], [-25, 5]]
-model = BayesianHilbertMap(model_file, ax_limits)
+model = BayesianHilbertMap(model_file, ax_limits, device)
 
 
-particles = particles_0.clone().cpu().numpy()
-particles = torch.from_numpy(particles)
+# particles = particles_0.clone().cpu().numpy()
+# particles = torch.from_numpy(particles)
+particles = particles_0.clone().detach()
 
 #================== Optimizer ===========================
 
@@ -190,7 +196,7 @@ particles, p_hist = langevin_dynamics.apply()
 # Make movie
 create_movie_2D(
     p_hist,
-    model.log_prob,
+    model,
     to_numpy=True,
     save_path='./sgld_bhm_intel_np_{}.mp4'.format(
         num_particles,
