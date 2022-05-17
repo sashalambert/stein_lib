@@ -130,6 +130,7 @@ max_itr = int(500)
 langevin_dynamics = LangevinDynamics(
     lr=0.1,
     lr_final=1e-2,
+    max_itr=max_itr,
 )
 # langevin_dynamics = MetropolisAdjustedLangevin(
 #     x,
@@ -139,7 +140,7 @@ langevin_dynamics = LangevinDynamics(
 #     max_itr=max_itr,
 # )
 
-particles, p_hist = langevin_dynamics.apply(x, model, max_itr)
+particles, p_hist = langevin_dynamics.apply(x, model)
 #================== HMC ===========================
 
 # #TODO: modify BHM model to match
