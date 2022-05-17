@@ -13,32 +13,25 @@ import copy
 class LangevinDynamics(object):
     def __init__(
             self,
-            x,
-            func,
             lr=1e-2,
             lr_final=1e-4,
-            max_itr=1e4,
     ):
         super(LangevinDynamics, self).__init__()
 
-        self.x = x
-        self.optim = pSGLD([self.x], lr, weight_decay=0.0)
         self.lr = lr
         self.lr_final = lr_final
-        self.max_itr = max_itr
-        self.func = func
-        self.lr_fn = self.decay_fn(lr=lr, lr_final=lr_final, max_itr=max_itr)
         self.counter = 0.0
+        self.optim = None
+        self.lr_fn = None
 
-    def sample(self):
+    def sample(self, x, model):
         self.lr_decay()
         self.optim.zero_grad()
-        # loss = self.func(self.x)
-        loss = -1. * self.func.log_prob(self.x).sum()
+        loss = -1. * model.log_prob(x).sum()
         loss.backward()
         self.optim.step()
         self.counter += 1
-        return copy.deepcopy(self.x.data), loss.item()
+        return copy.deepcopy(x.data), loss.item()
 
     def decay_fn(self, lr=1e-2, lr_final=1e-4, max_itr=1e4):
         gamma = -0.55
@@ -52,11 +45,13 @@ class LangevinDynamics(object):
         for param_group in self.optim.param_groups:
             param_group['lr'] = self.lr_fn(self.counter)
 
-    def apply(self):
+    def apply(self, x, model, max_itr):
         hist_samples = []
         loss_log = []
-        for j in tqdm(range(int(self.max_itr))):
-            est, loss = self.sample()
+        self.optim = pSGLD([x], self.lr, weight_decay=0.0)
+        self.lr_fn = self.decay_fn(lr=self.lr, lr_final=self.lr_final, max_itr=max_itr)
+        for j in tqdm(range(max_itr)):
+            est, loss = self.sample(x, model)
             loss_log.append(loss)
             # if j % 10 == 0:
             hist_samples.append(est.cpu().numpy())

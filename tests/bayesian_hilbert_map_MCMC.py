@@ -128,11 +128,8 @@ x = particles
 x.requires_grad = True
 max_itr = int(500)
 langevin_dynamics = LangevinDynamics(
-    x,
-    model,
     lr=0.1,
     lr_final=1e-2,
-    max_itr=max_itr,
 )
 # langevin_dynamics = MetropolisAdjustedLangevin(
 #     x,
@@ -142,7 +139,7 @@ langevin_dynamics = LangevinDynamics(
 #     max_itr=max_itr,
 # )
 
-particles, p_hist = langevin_dynamics.apply()
+particles, p_hist = langevin_dynamics.apply(x, model, max_itr)
 
 #================== HMC ===========================
 
