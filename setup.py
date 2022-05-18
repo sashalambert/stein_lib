@@ -20,5 +20,6 @@ setup(
         'pyro-ppl',
         'matplotlib',
         'seaborn',
+        'hamiltorch @ git+https://github.com/AdamCobb/hamiltorch',
     ],
 )
