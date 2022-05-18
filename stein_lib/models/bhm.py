@@ -45,6 +45,8 @@ class BayesianHilbertMap:
         self.limits = torch.tensor(limits).to(device)
 
     def log_prob(self, x):
+        if x.dim() == 1:
+            x = x.view(1, -1)
         log_p = self.bhm.log_prob_vacancy(x)
         if self.limits is not None:
             scale = 1.
