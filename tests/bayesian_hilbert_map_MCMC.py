@@ -123,36 +123,51 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 
 #================== SGLD ===========================
 
-# x = torch.randn([5, 2], requires_grad=True)
-x = particles
-# x.requires_grad = True
-max_itr = int(500)
-langevin_dynamics = LangevinDynamics(
-    lr=0.1,
-    lr_final=1e-2,
-    max_itr=max_itr,
-)
-# langevin_dynamics = MetropolisAdjustedLangevin(
-#     x,
-#     model,
+# sampler_type = 'sgld'
+# # x = torch.randn([5, 2], requires_grad=True)
+# x = particles
+# # x.requires_grad = True
+# max_itr = int(500)
+# langevin_dynamics = LangevinDynamics(
 #     lr=0.1,
 #     lr_final=1e-2,
 #     max_itr=max_itr,
 # )
-
-particles, p_hist = langevin_dynamics.apply(x, model)
-#================== HMC ===========================
-
-# #TODO: modify BHM model to match
-# def pyro_model(data):
-#     y = pyro.sample('y', model(), obs=data)
-#     return y
+# # langevin_dynamics = MetropolisAdjustedLangevin(
+# #     x,
+# #     model,
+# #     lr=0.1,
+# #     lr_final=1e-2,
+# #     max_itr=max_itr,
+# # )
 #
-# nuts_kernel = NUTS(model.log_prob, adapt_step_size=True)
-# mcmc = MCMC(nuts_kernel, num_samples=500, warmup_steps=300)
-# mcmc.run(particles)
-# particles = mcmc.get_samples()
-# particles = particles.unsqueeze()
+# particles, p_hist = langevin_dynamics.apply(x, model)
+
+#================== HMC ===========================
+sampler_type = 'nuts'
+import hamiltorch
+
+N = 100
+step_size = .3
+# L = 5
+L = 25
+burn = 500
+N_nuts = burn + N
+
+hist = hamiltorch.sample(
+    log_prob_func=model.log_prob,
+    params_init=particles[0],
+    num_samples=N_nuts,
+    step_size=step_size,
+    num_steps_per_sample=L,
+    sampler=hamiltorch.Sampler.HMC_NUTS,
+    burn=burn,
+    desired_accept_rate=0.8,
+)
+hist = torch.stack(hist)
+particles = hist[-1]
+p_hist = [hist[:i].cpu().numpy() for i in range(N)]
+
 
 #================== Graph ===========================
 
@@ -195,7 +210,8 @@ create_movie_2D(
     p_hist,
     model,
     to_numpy=True,
-    save_path='./sgld_bhm_intel_np_{}.mp4'.format(
+    save_path='./{}_bhm_intel_np_{}.mp4'.format(
+        sampler_type,
         num_particles,
     ),
     ax_limits=ax_limits,
