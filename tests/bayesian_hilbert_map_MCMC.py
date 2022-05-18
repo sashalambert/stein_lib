@@ -147,27 +147,35 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 sampler_type = 'nuts'
 import hamiltorch
 
-N = 100
-step_size = .3
+num_restarts = 1
+# N = 100
+N = 300
+# N = 500
+# N = 1500
+# step_size = .3
+step_size = 2.5
 # L = 5
 L = 25
 burn = 500
 N_nuts = burn + N
 
-hist = hamiltorch.sample(
-    log_prob_func=model.log_prob,
-    params_init=particles[0],
-    num_samples=N_nuts,
-    step_size=step_size,
-    num_steps_per_sample=L,
-    sampler=hamiltorch.Sampler.HMC_NUTS,
-    burn=burn,
-    desired_accept_rate=0.8,
-)
+hist = []
+for i in range(num_restarts):
+    samples = hamiltorch.sample(
+        log_prob_func=model.log_prob,
+        params_init=particles[i],
+        num_samples=N_nuts,
+        step_size=step_size,
+        num_steps_per_sample=L,
+        sampler=hamiltorch.Sampler.HMC_NUTS,
+        burn=burn,
+        desired_accept_rate=0.8,
+    )
+    hist += samples
 hist = torch.stack(hist)
 particles = hist[-1]
-p_hist = [hist[:i].cpu().numpy() for i in range(N)]
-
+p_hist = [hist[:i].cpu().numpy() for i in range(N * num_restarts)]
+num_particles = num_restarts * N
 
 #================== Graph ===========================
 
@@ -186,10 +194,10 @@ p_hist = [hist[:i].cpu().numpy() for i in range(N)]
 #     connect_radius=5.,
 #     include_coll_pts=True,  # For debugging, visualization
 # )
-
-#================== Visualization ===========================
-
-# Plot Graph
+#
+# #================== Visualization ===========================
+#
+# # Plot Graph
 # plot_graph_2D(
 #     particles.detach(),
 #     nodes,
