@@ -33,8 +33,7 @@ from stein_lib.prm_utils import get_graph
 from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
 from tqdm import tqdm
-from pyro.infer.mcmc import NUTS, MCMC
-import pyro
+from stein_lib.mcmc.hmc import HMC
 
 if not torch.cuda.is_available():
     device = torch.device('cpu')
@@ -53,7 +52,8 @@ iters = 100
 # iters = 1
 
 # Sample intial particles
-torch.manual_seed(1)
+# torch.manual_seed(1)
+torch.manual_seed(0)
 
 ## Large Gaussian in center of intel map.
 # prior_dist = Normal(loc=torch.tensor([3.,-10.]),
@@ -145,37 +145,15 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 
 #================== HMC ===========================
 sampler_type = 'nuts'
-import hamiltorch
-
-num_restarts = 1
-# N = 100
-N = 300
-# N = 500
-# N = 1500
-# step_size = .3
-step_size = 2.5
-# L = 5
-L = 25
-burn = 500
-N_nuts = burn + N
-
-hist = []
-for i in range(num_restarts):
-    samples = hamiltorch.sample(
-        log_prob_func=model.log_prob,
-        params_init=particles[i],
-        num_samples=N_nuts,
-        step_size=step_size,
-        num_steps_per_sample=L,
-        sampler=hamiltorch.Sampler.HMC_NUTS,
-        burn=burn,
-        desired_accept_rate=0.8,
-    )
-    hist += samples
-hist = torch.stack(hist)
-particles = hist[-1]
-p_hist = [hist[:i].cpu().numpy() for i in range(N * num_restarts)]
-num_particles = num_restarts * N
+NUTS_sampler = HMC(
+    sampler_type=sampler_type,
+    step_size=2.5,
+    num_steps_per_sample=25,
+    burn_in_steps=100,
+    num_restarts=5,
+)
+particles, p_hist = NUTS_sampler.apply(particles_0, model, num_particles)
+print('\nFinal num. of particles: ', particles.shape)
 
 #================== Graph ===========================
 
