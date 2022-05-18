@@ -33,7 +33,7 @@ from stein_lib.prm_utils import get_graph
 from stein_lib.svgd.base_kernels import RBF, RBF_Anisotropic
 from stein_lib.svgd.LBFGS import FullBatchLBFGS, LBFGS
 from tqdm import tqdm
-from stein_lib.mcmc.hmc import HMC
+from stein_lib.mcmc.hmc import HMC, NUTS
 
 if not torch.cuda.is_available():
     device = torch.device('cpu')
@@ -144,17 +144,23 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 # particles, p_hist = langevin_dynamics.apply(x, model)
 
 #================== HMC ===========================
+# sampler_type = 'hmc'
+# HMC_sampler = HMC(
+#     step_size=2.5,
+#     num_steps_per_sample=25,
+#     num_restarts=5,
+# )
+# particles, p_hist = HMC_sampler.apply(particles_0, model, num_particles)
+
+#================== NUTS - HMC ===========================
 sampler_type = 'nuts'
-NUTS_sampler = HMC(
-    sampler_type=sampler_type,
+NUTS_sampler = NUTS(
     step_size=2.5,
     num_steps_per_sample=25,
     burn_in_steps=100,
     num_restarts=5,
 )
 particles, p_hist = NUTS_sampler.apply(particles_0, model, num_particles)
-print('\nFinal num. of particles: ', particles.shape)
-
 #================== Graph ===========================
 
 # (nodes,
