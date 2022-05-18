@@ -39,7 +39,7 @@ class HMC(object):
             hist += samples
 
         particles = torch.stack(hist)
-        p_hist = [particles[:i].cpu().numpy() for i in range(N * self.num_restarts)]
+        p_hist = [particles[:i+1].cpu().numpy() for i in range(num_samples)]
         return (particles, p_hist)
 
 

@@ -143,7 +143,7 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 #
 # particles, p_hist = langevin_dynamics.apply(x, model)
 
-#================== HMC ===========================
+# # ================== HMC ===========================
 # sampler_type = 'hmc'
 # HMC_sampler = HMC(
 #     step_size=2.5,
@@ -152,7 +152,7 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 # )
 # particles, p_hist = HMC_sampler.apply(particles_0, model, num_particles)
 
-#================== NUTS - HMC ===========================
+# ================== NUTS - HMC ===========================
 sampler_type = 'nuts'
 NUTS_sampler = NUTS(
     step_size=2.5,

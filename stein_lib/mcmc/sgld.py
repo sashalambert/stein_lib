@@ -62,7 +62,6 @@ class LangevinDynamics(object):
         for j in tqdm(range(self.max_itr)):
             est, loss = self.sample(x, model)
             loss_log.append(loss)
-            # if j % 10 == 0:
             hist_samples.append(est.cpu().numpy())
         particles = est
         p_hist = np.array(hist_samples)
