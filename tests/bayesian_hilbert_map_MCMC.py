@@ -138,6 +138,7 @@ particles = particles_0.clone().detach()
 #     lr_final=1e-2,
 #     max_itr=500,
 #     beta=0.99,
+#     gamma=-0.55,
 #     Lambda=1e-15,
 # )
 # particles, p_hist = langevin_dynamics.apply(x, model)
@@ -145,17 +146,19 @@ particles = particles_0.clone().detach()
 #================== MALA ===========================
 
 sampler_type = 'mala'
-x = particles[4]
+x = particles
 
 langevin_dynamics = MetropolisAdjustedLangevin(
     lr=0.1,
     lr_final=1e-2,
-    max_itr=50,
+    max_itr=500,
+    beta=0.99,
+    Lambda=1e-15,
+    gamma=-0.55,
 )
 
 particles, p_hist = langevin_dynamics.apply(x, model)
 
-p_hist = p_hist.reshape((-1, 1, 2))
 # # ================== HMC ===========================
 # sampler_type = 'hmc'
 # HMC_sampler = HMC(

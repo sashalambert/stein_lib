@@ -2,8 +2,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 @dataclass
-class SGLDConf:
+class LDConf:
     _target_: str = "stein_lib.mcmc.sgld.LangevinDynamics"
+    lr: float = 0.1
+    lr_final: float = 1.e-2
+    max_itr: int = 1
+    gamma: float = -0.55
+
+@dataclass
+class MALAConf:
+    _target_: str = "stein_lib.mcmc.sgld.MetropolisAdjustedLangevin"
     lr: float = 0.1
     lr_final: float = 1.e-2
     max_itr: int = 1
