@@ -11,7 +11,7 @@ class LDConf:
 
 @dataclass
 class MALAConf:
-    _target_: str = "stein_lib.mcmc.sgld.MetropolisAdjustedLangevin"
+    _target_: str = "stein_lib.mcmc.langevin.MetropolisAdjustedLangevin"
     lr: float = 0.1
     lr_final: float = 1.e-2
     max_itr: int = 1

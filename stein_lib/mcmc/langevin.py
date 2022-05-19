@@ -87,6 +87,8 @@ class MetropolisAdjustedLangevin(object):
             gamma=-0.55,
             beta=0.99, # set to 0 for vanilla LD
             Lambda=1e-15, # set to 1. for vanilla LD
+            # beta=0., # set to 0 for vanilla LD
+            # Lambda=1, # set to 1. for vanilla LD
     ):
         super(MetropolisAdjustedLangevin, self).__init__()
 

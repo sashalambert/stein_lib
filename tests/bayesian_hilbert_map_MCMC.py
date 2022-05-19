@@ -25,7 +25,7 @@ import torch
 from torch.distributions import Normal, Uniform
 import numpy as np
 from stein_lib.models.gaussian_mixture import mixture_of_gaussians
-from stein_lib.mcmc.sgld import LangevinDynamics, MetropolisAdjustedLangevin
+from stein_lib.mcmc.langevin import LangevinDynamics, MetropolisAdjustedLangevin
 from pathlib import Path
 from stein_lib.models.bhm import BayesianHilbertMap
 from stein_lib.utils import create_movie_2D, plot_graph_2D
@@ -158,7 +158,7 @@ langevin_dynamics = MetropolisAdjustedLangevin(
 )
 
 particles, p_hist = langevin_dynamics.apply(x, model)
-
+print('\nNum. nans: ', particles.isnan().sum())
 # # ================== HMC ===========================
 # sampler_type = 'hmc'
 # HMC_sampler = HMC(
