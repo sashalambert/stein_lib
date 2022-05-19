@@ -92,14 +92,10 @@ model = BayesianHilbertMap(model_file, ax_limits, device)
 # particles = torch.from_numpy(particles)
 particles = particles_0.clone().detach()
 
-#================== Optimizer ===========================
-
-# optimizer = torch.optim.SGD([particles], lr=1.)
-
-optimizer = torch.optim.Adam([particles], lr=0.25)
-
 #================== SVGD ===========================
 
+# optimizer = torch.optim.SGD([particles], lr=1.)
+# optimizer = torch.optim.Adam([particles], lr=0.25)
 # svgd = SVGD(
 #     kernel=kernel,
 #     kernel_structure=None,
@@ -108,7 +104,6 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 #     verbose=True,
 # )
 #
-# ## Optimize
 # (particles,
 #  p_hist,
 #  pw_dists,
@@ -124,24 +119,41 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 #================== SGLD ===========================
 
 # sampler_type = 'sgld'
-# # x = torch.randn([5, 2], requires_grad=True)
 # x = particles
-# # x.requires_grad = True
-# max_itr = int(500)
 # langevin_dynamics = LangevinDynamics(
 #     lr=0.1,
 #     lr_final=1e-2,
-#     max_itr=max_itr,
+#     max_itr=500,
+#     beta=0.,
+#     Lambda=1.,
 # )
-# # langevin_dynamics = MetropolisAdjustedLangevin(
-# #     x,
-# #     model,
-# #     lr=0.1,
-# #     lr_final=1e-2,
-# #     max_itr=max_itr,
-# # )
-#
 # particles, p_hist = langevin_dynamics.apply(x, model)
+
+#================== precond SGLD ===========================
+
+# sampler_type = 'pc-sgld'
+# x = particles
+# langevin_dynamics = LangevinDynamics(
+#     lr=0.1,
+#     lr_final=1e-2,
+#     max_itr=500,
+#     beta=0.99,
+#     Lambda=1e-15,
+# )
+# particles, p_hist = langevin_dynamics.apply(x, model)
+
+#================== MALA ===========================
+
+sampler_type = 'mala'
+x = particles
+
+langevin_dynamics = MetropolisAdjustedLangevin(
+    lr=0.1,
+    lr_final=1e-2,
+    max_itr=500,
+)
+
+particles, p_hist = langevin_dynamics.apply(x, model)
 
 # # ================== HMC ===========================
 # sampler_type = 'hmc'
@@ -153,14 +165,14 @@ optimizer = torch.optim.Adam([particles], lr=0.25)
 # particles, p_hist = HMC_sampler.apply(particles_0, model, num_particles)
 
 # ================== NUTS - HMC ===========================
-sampler_type = 'nuts'
-NUTS_sampler = NUTS(
-    step_size=2.5,
-    num_steps_per_sample=25,
-    burn_in_steps=100,
-    num_restarts=5,
-)
-particles, p_hist = NUTS_sampler.apply(particles_0, model, num_particles)
+# sampler_type = 'nuts'
+# NUTS_sampler = NUTS(
+#     step_size=2.5,
+#     num_steps_per_sample=25,
+#     burn_in_steps=100,
+#     num_restarts=5,
+# )
+# particles, p_hist = NUTS_sampler.apply(particles_0, model, num_particles)
 #================== Graph ===========================
 
 # (nodes,
