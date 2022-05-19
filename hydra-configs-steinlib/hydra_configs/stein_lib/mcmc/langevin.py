@@ -7,6 +7,8 @@ class LDConf:
     lr: float = 0.1
     lr_final: float = 1.e-2
     max_itr: int = 1
+    beta: float = 0.99
+    Lambda: float = 1e-15
     gamma: float = -0.55
 
 @dataclass
@@ -15,4 +17,7 @@ class MALAConf:
     lr: float = 0.1
     lr_final: float = 1.e-2
     max_itr: int = 1
+    beta: float = 0.99
+    Lambda: float = 1e-15
     gamma: float = -0.55
+    max_attempts: int = 9999

@@ -44,7 +44,8 @@ else:
 
 ###### Params ######
 # num_particles = 100
-num_particles = 250
+# num_particles = 250
+num_particles = 25
 # num_particles = 1
 # iters = 3000
 # iters = 200
@@ -86,7 +87,6 @@ bhm_path = Path(bhmlib.__path__[0]).resolve()
 model_file = '/tmp/bhm_intel_res0.25_iter900.pt'
 ax_limits = [[-10, 20], [-25, 5]]
 model = BayesianHilbertMap(model_file, ax_limits, device)
-
 
 # particles = particles_0.clone().cpu().numpy()
 # particles = torch.from_numpy(particles)
@@ -149,12 +149,13 @@ sampler_type = 'mala'
 x = particles
 
 langevin_dynamics = MetropolisAdjustedLangevin(
-    lr=0.1,
-    lr_final=1e-2,
-    max_itr=500,
+    lr=1.,
+    lr_final=1.e-1,
+    max_itr=200,
     beta=0.99,
     Lambda=1e-15,
     gamma=-0.55,
+    max_attempts=25,
 )
 
 particles, p_hist = langevin_dynamics.apply(x, model)

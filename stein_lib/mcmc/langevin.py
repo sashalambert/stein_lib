@@ -89,6 +89,7 @@ class MetropolisAdjustedLangevin(object):
             Lambda=1e-15, # set to 1. for vanilla LD
             # beta=0., # set to 0 for vanilla LD
             # Lambda=1, # set to 1. for vanilla LD
+            max_attempts=99999,
     ):
         super(MetropolisAdjustedLangevin, self).__init__()
 
@@ -103,11 +104,13 @@ class MetropolisAdjustedLangevin(object):
         self.lr_fn = None
         self.optim = None
         self.counter = 0.0
+        self.max_attempts = max_attempts
 
     def sample(self, model):
         accepted = False
         self.lr_decay()
-        while not accepted:
+        # while not accepted:
+        for _ in range(self.max_attempts):
             self.x[1].grad = self.grad[1].data
             self.P = self.optim.step()
             # self.loss[1] = self.func(self.x[1])
@@ -121,10 +124,11 @@ class MetropolisAdjustedLangevin(object):
                 self.loss[0].data = self.loss[1].data
                 self.x[0].data = self.x[1].data
                 accepted = True
+                break
             else:
                 self.x[1].data = self.x[0].data
         self.counter += 1
-        return copy.deepcopy(self.x[1].data), self.loss[1].item()
+        return copy.deepcopy(self.x[1].data), self.loss[1].item(), accepted
 
     def proposal_dist(self, idx):
         return (-(.25 / self.lr_fn(self.counter)) *
@@ -147,46 +151,54 @@ class MetropolisAdjustedLangevin(object):
         for param_group in self.optim.param_groups:
             param_group['lr'] = self.lr_fn(self.counter)
 
-    def apply(self, x, model):
-        hist_samples = []
+    def apply(self, x_batch, model):
+        p_hist = []
         loss_log = []
-        x.requires_grad = True
+        num_particles = x_batch.size(0)
+        for i in range(num_particles):
+            x = x_batch[i].clone().detach()
+            x.requires_grad = True
+            self.x = [
+                torch.zeros(x.shape, device=x.device, requires_grad=True),
+                torch.zeros(x.shape, device=x.device, requires_grad=True)
+                ]
+            self.x[0].data = x.data
+            self.x[1].data = x.data
 
-        self.x = [
-            torch.zeros(x.shape, device=x.device, requires_grad=True),
-            torch.zeros(x.shape, device=x.device, requires_grad=True)
-            ]
-        self.x[0].data = x.data
-        self.x[1].data = x.data
+            self.loss = [torch.zeros([1], device=x.device),
+                         torch.zeros([1], device=x.device)]
+            self.loss[0] = -1. * model.log_prob(self.x[0]).sum()
+            self.loss[1].data = self.loss[0].data
 
-        self.loss = [torch.zeros([1], device=x.device),
-                     torch.zeros([1], device=x.device)]
-        self.loss[0] = -1. * model.log_prob(self.x[0]).sum()
-        self.loss[1].data = self.loss[0].data
+            self.grad = [torch.zeros(x.shape, device=x.device),
+                         torch.zeros(x.shape, device=x.device)]
+            self.grad[0].data = torch.autograd.grad(
+                self.loss[0], [self.x[0]],
+                create_graph=False)[0].data
+            self.grad[1].data = self.grad[0].data
 
-        self.grad = [torch.zeros(x.shape, device=x.device),
-                     torch.zeros(x.shape, device=x.device)]
-        self.grad[0].data = torch.autograd.grad(self.loss[0], [self.x[0]],
-            create_graph=False)[0].data
-        self.grad[1].data = self.grad[0].data
+            self.optim = pSGLD(
+                [self.x[1]],
+                self.lr,
+                self.beta,
+                self.Lambda,
+                weight_decay=0.0,
+            )
+            self.lr_fn = self.decay_fn(
+                lr=self.lr,
+                lr_final=self.lr_final,
+                max_itr=self.max_itr,
+                gamma=self.gamma,
+            )
+            hist_sample = []
+            for j in tqdm(range(self.max_itr)):
+                sample, loss, accepted = self.sample(model)
+                loss_log.append(loss)
+                hist_sample.append(sample)
+            hist_sample = torch.stack(hist_sample)
+            p_hist.append(hist_sample)
 
-        self.optim = pSGLD(
-            [self.x[1]],
-            self.lr,
-            self.beta,
-            self.Lambda,
-            weight_decay=0.0,
-        )
-        self.lr_fn = self.decay_fn(
-            lr=self.lr,
-            lr_final=self.lr_final,
-            max_itr=self.max_itr,
-            gamma=self.gamma,
-        )
-        for j in tqdm(range(self.max_itr)):
-            est, loss = self.sample(model)
-            loss_log.append(loss)
-            hist_samples.append(est.cpu().numpy())
-        particles = est
-        p_hist = np.array(hist_samples)
+        p_hist = torch.stack(p_hist).permute(1, 0, 2) # hist_len, num_p, dim
+        particles = p_hist[-1]
+        p_hist = p_hist.cpu().numpy()
         return (particles, p_hist)
