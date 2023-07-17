@@ -4,7 +4,7 @@ Library for Stein-Variational Gradient Descent methods.
 
 ## References
 
-[1] Lambert, A.; Boots, B. (2022). Learning Implicit Priors for Motion Optimization, IEEE/RSJ International Conference on Intelligent Robots and Systems (ICRA).  
+[1] Lambert, A.; Hou, B.; Scalise. R.; Srinivasa, S.; Boots, B. (2022). Stein Variational Probabilistic Roadmaps, IEEE/RSJ International Conference on Intelligent Robots and Systems (ICRA).  
 
 If you found this code useful, please cite us!
 ```
